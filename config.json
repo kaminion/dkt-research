@@ -1,0 +1,23 @@
+{
+    "train_config": {
+        "batch_size": 100,
+        "num_epochs": 100,
+        "train_ratio": 0.9,
+        "learning_rate": 0.001,
+        "optimizer": "adam",
+        "seq_len": 100
+    },
+    "dkt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "clkt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "mekt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    }
+
+}
