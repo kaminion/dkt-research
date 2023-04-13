@@ -100,7 +100,7 @@ class DeepIRT(nn.Module):
                         torch.save(
                             self.state_dict(),
                             os.path.join(
-                                ckpt_path, "mekt.ckpt"
+                                ckpt_path, "dirt.ckpt"
                             )
                         )
                         max_auc = auc

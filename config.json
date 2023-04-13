@@ -18,6 +18,10 @@
     "mekt": {
         "emb_size": 100,
         "hidden_size": 100
+    },
+    "dirt": {
+        "emb_size": 100,
+        "hidden_size": 100
     }
 
 }
