@@ -2,7 +2,7 @@ import os
 import numpy as np 
 import torch
 from torch import nn 
-from torch.nn.functional import binary_cross_entropy, softmax
+from torch.nn.functional import binary_cross_entropy, softmax, binary_cross_entropy_with_logits
 from sklearn import metrics
 
 class DeepIRT(nn.Module):
@@ -28,8 +28,10 @@ class DeepIRT(nn.Module):
         self.item_layer.add_module("beta1_act", nn.Tanh())
         self.item_layer.add_module("beta2", nn.Linear(self.hidden_size, 1))
         self.item_layer.add_module("beta2_act", nn.Tanh())
+        self.item_layer.add_module("beta3", nn.Linear(1, 1))
 
         self.hidden_layer = nn.Linear(1, 1)
+        self.sigmoid = nn.Sigmoid()
         self.softmax = softmax
 
 
@@ -40,7 +42,7 @@ class DeepIRT(nn.Module):
         theta = self.examinee_layer(emb_user)
         beta = self.item_layer(emb_item)
         h = self.hidden_layer(theta - beta)
-        return softmax(h)
+        return self.softmax(h.squeeze(), dim=1)
     
     def train_model(self, train_loader, test_loader, num_epochs, opt, ckpt_path):
         '''
@@ -69,7 +71,7 @@ class DeepIRT(nn.Module):
                 t = torch.masked_select(r, m)
 
                 opt.zero_grad()
-                loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+                loss = binary_cross_entropy_with_logits(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
                 loss.backward()
                 opt.step()
 
