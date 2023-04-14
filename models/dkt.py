@@ -31,7 +31,7 @@ class DKT(Module):
 
         # Compressive sensing에 의하면 d차원에서의 k-sparse 신호는 모두 원복될 수 있음. (klogd에 변형을 가한 모든 값)
         # 여기서 d차원은 unique exercise이고(M), K-sparse는 원핫인코딩을 거치므로 1-sparse라고 할 수 있음.
-        x = q + self.num_q * r # 그러므로 연관있는 랜덤변수들을 연산하여 랜덤 가우시안 변수를 만들어냄
+        x = q + self.num_q * r # r텐서를 num_q 만큼 곱해서 확장함
         h, _ = self.lstm_layer(self.interaction_emb(x))
         y = self.out_layer(h)
         y = self.dropout_layer(y)
