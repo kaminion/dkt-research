@@ -9,12 +9,14 @@ if torch.cuda.is_available():
 else:
     from torch import FloatTensor
 
-def match_seq_len(q_seqs, r_seqs, seq_len, pad_val=-1):
+def match_seq_len(q_seqs, r_seqs, at_seqs, seq_len, pad_val=-1):
     '''
         Args: 
             q_seqs: the question(KC) sequence with the size of \
                 [batch_size, some_sequence_length]
             r_seqs: the response sequence with the size of \
+                [batch_size, some_sequence_length]
+            at_seqs: the answer text sequence with the size of \
                 [batch_size, some_sequence_length]
             
             Note that the "some_sequence_length" is not uniform over \
@@ -30,19 +32,23 @@ def match_seq_len(q_seqs, r_seqs, seq_len, pad_val=-1):
                 [batch_size, seq_len + 1]
             proc_r_seqs: the processed r_seqs with the size of \
                 [batch_size, seq_len + 1]
+            proc_at_seqs: the processed at_seqs with the size of \
+                [batch_size, seq_len + 1]
     '''
 
     proc_q_seqs = []
     proc_r_seqs = []
+    proc_at_seqs = []
 
     # seq_len은 q_seqs와 r_seqs를 같은 길이로 매치하는 시퀀스 길이를 의미함.
     # q_seq는 유저의 스킬에 대한 인덱스 리스트를 갖는 리스트임.
     # 주어진 q, r시퀀스들을 seq_len 만큼 자르는 것이라고 보면 됨
-    for q_seq, r_seq in zip(q_seqs, r_seqs):
+    for q_seq, r_seq, at_seq in zip(q_seqs, r_seqs, at_seqs):
         i = 0
         while i + seq_len + 1 < len(q_seq): # i + seq_len + 1 이 주어진 문제 집합보다 길이가 작을 때, e.g.) 0 + 100 + 1 < 128
             proc_q_seqs.append(q_seq[i:i + seq_len + 1]) # i부터 i + seq_len + 1 범위의 elements를 퀘스천 시퀀스에 넣음 e.g.) 0부터 0 + 100 + 1 원소의 배열 시퀀스를 proc_q에 할당함
             proc_r_seqs.append(r_seq[i:i + seq_len + 1]) # 위와 동일. e.g.) 0부터 0 + 100 + 1 원소 배열 시퀀스를 proc_r에 할당함
+            proc_at_seqs.append(at_seq[i:i + seq_len + 1])
 
             i += seq_len + 1 # i에 seq_len + 1을 더하여 len(q_seq)보다 크게 만듬
 
@@ -60,9 +66,15 @@ def match_seq_len(q_seqs, r_seqs, seq_len, pad_val=-1):
                 np.array([pad_val] * (i + seq_len + 1 - len(q_seq)))
             ])
         )
+        proc_at_seqs.append(
+            np.concatenate([
+                at_seq[i:],
+                np.array([pad_val] * (i + seq_len + 1 - len(at_seq)))
+            ])
+        )
         # 마지막 1개의 원소들은 패딩해서 넣게 됨
 
-    return proc_q_seqs, proc_r_seqs
+    return proc_q_seqs, proc_r_seqs, proc_at_seqs 
 
 
 def collate_fn(batch, pad_val=-1):
@@ -89,12 +101,14 @@ def collate_fn(batch, pad_val=-1):
     r_seqs = []
     qshft_seqs = []
     rshft_seqs = []
+    at_seqs = []
 
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
-    for q_seq, r_seq in batch:
+    for q_seq, r_seq, at_seq in batch:
         q_seqs.append(FloatTensor(q_seq[:-1])) 
         r_seqs.append(FloatTensor(r_seq[:-1]))
+        at_seqs.append(FloatTensor(at_seq[:-1]))
         qshft_seqs.append(FloatTensor(q_seq[1:]))
         rshft_seqs.append(FloatTensor(r_seq[1:]))
 
@@ -105,6 +119,9 @@ def collate_fn(batch, pad_val=-1):
     )
     r_seqs = pad_sequence(
         r_seqs, batch_first=True, padding_value=pad_val
+    )
+    at_seqs = pad_sequence(
+        at_seqs, batch_first=True, padding_value=pad_val
     )
     qshft_seqs = pad_sequence(
         qshft_seqs, batch_first=True, padding_value=pad_val
@@ -121,12 +138,12 @@ def collate_fn(batch, pad_val=-1):
     mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
 
     # 원본 값의 다음 값이(shift value) 패딩이기만 해도 마스킹 시퀀스에 의해 값이 0로 변함. 아닐경우 원본 시퀀스 데이터를 가짐.
-    q_seqs, r_seqs, qshft_seqs, rshft_seqs = \
-        q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
+    q_seqs, r_seqs, at_seqs, qshft_seqs, rshft_seqs = \
+        q_seqs * mask_seqs, r_seqs * mask_seqs, at_seqs * mask_seqs, qshft_seqs * mask_seqs, \
         rshft_seqs * mask_seqs
 
 
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, at_seqs
 
 class SIMSE(nn.Module):
 

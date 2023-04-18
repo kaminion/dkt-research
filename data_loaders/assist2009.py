@@ -8,7 +8,13 @@ from torch.utils.data import Dataset
 from models.utils import match_seq_len
 
 DATASET_DIR = "datasets/ASSIST2009/"
-
+Q_SEQ_PICKLE = "q_seqs.pkl"
+R_SEQ_PICKLE = "r_seqs.pkl"
+AT_SEQ_PICKLE = "at_seqs.pkl"
+Q_LIST_PICKLE = "q_list.pkl"
+U_LIST_PICKLE = "u_list.pkl"
+Q_IDX_PICKLE = "q2idx.pkl"
+U_IDX_PICKLE = 'u2idx.pkl'
 
 class ASSIST2009(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
@@ -20,21 +26,23 @@ class ASSIST2009(Dataset):
         )
 
         # 미리 피클에 담겨진 파일들 로딩
-        if os.path.exists(os.path.join(self.dataset_dir, "q_seqs.pkl")):
-            with open(os.path.join(self.dataset_dir, "q_seqs.pkl"), "rb") as f:
+        if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)):
+            with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "rb") as f:
                 self.q_seqs = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, "r_seqs.pkl"), "rb") as f:
+            with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "rb") as f:
                 self.r_seqs = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, "q_list.pkl"), "rb") as f:
+            with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "rb") as f:
+                self.at_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, Q_LIST_PICKLE), "rb") as f:
                 self.q_list = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, "u_list.pkl"), "rb") as f:
+            with open(os.path.join(self.dataset_dir, U_LIST_PICKLE), "rb") as f:
                 self.u_list = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, "q2idx.pkl"), "rb") as f:
+            with open(os.path.join(self.dataset_dir, Q_IDX_PICKLE), "rb") as f:
                 self.q2idx = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, "u2idx.pkl"), "rb") as f:
+            with open(os.path.join(self.dataset_dir, U_IDX_PICKLE), "rb") as f:
                 self.u2idx = pickle.load(f)
         else:
-            self.q_seqs, self.r_seqs, self.q_list, self.u_list, self.q2idx, \
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, self.u_list, self.q2idx, \
                 self.u2idx = self.preprocess()
         
         # 유저와 문제 갯수 저장
@@ -42,13 +50,13 @@ class ASSIST2009(Dataset):
         self.num_q = self.q_list.shape[0]
 
         if seq_len:
-            self.q_seqs, self.r_seqs = \
-                match_seq_len(self.q_seqs, self.r_seqs, seq_len)
+            self.q_seqs, self.r_seqs, self.at_seqs = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, seq_len)
 
         self.len = len(self.q_seqs)
     
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index]
     
     def __len__(self):
         return self.len
@@ -69,6 +77,7 @@ class ASSIST2009(Dataset):
 
         q_seqs = []
         r_seqs = []
+        at_seqs = []
 
         for u in u_list:
             # 유저아이디를 순차적으로 돌면서 해당하는 유저 탐색
@@ -78,22 +87,26 @@ class ASSIST2009(Dataset):
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
             q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
             r_seq = df_u["correct"].values # 유저의 정답여부 저장
+            at_seq = df_u["answer_text"].values
 
             # 해당 리스트들을 다시 리스트에 저장
             q_seqs.append(q_seq)
             r_seqs.append(r_seq)
+            at_seqs.append(at_seq)
 
-        with open(os.path.join(self.dataset_dir, "q_seqs.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
-        with open(os.path.join(self.dataset_dir, "r_seqs.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "wb") as f:
             pickle.dump(r_seqs, f)
-        with open(os.path.join(self.dataset_dir, "q_list.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "wb") as f:
+            pickle.dump(at_seqs, f)
+        with open(os.path.join(self.dataset_dir, Q_LIST_PICKLE), "wb") as f:
             pickle.dump(q_list, f)
-        with open(os.path.join(self.dataset_dir, "u_list.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, U_LIST_PICKLE), "wb") as f:
             pickle.dump(u_list, f)
-        with open(os.path.join(self.dataset_dir, "q2idx.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, Q_IDX_PICKLE), "wb") as f:
             pickle.dump(q2idx, f)
-        with open(os.path.join(self.dataset_dir, "u2idx.pkl"), "wb") as f:
+        with open(os.path.join(self.dataset_dir, U_IDX_PICKLE), "wb") as f:
             pickle.dump(u2idx, f)
 
-        return q_seqs, r_seqs, q_list, u_list, q2idx, u2idx
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, u2idx
