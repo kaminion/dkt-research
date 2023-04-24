@@ -14,6 +14,7 @@ from models.dkt import DKT
 from models.clkt import CLKT
 from models.mekt import MEKT
 from models.dirt import DeepIRT
+from models.qakt import QAKT
 from models.utils import collate_fn
 
 # wandb
@@ -79,6 +80,8 @@ def main(model_name, dataset_name):
         model = MEKT(dataset.num_q, **model_config).to(device)
     elif model_name == "dirt":
         model = DeepIRT(dataset.num_q, dataset.num_u, **model_config).to(device)
+    elif model_name == "qakt":
+        model = QAKT(dataset.num_q, **model_config).to(device)
 
     else: 
         print("The wrong model name was used...")

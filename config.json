@@ -4,7 +4,7 @@
         "num_epochs": 100,
         "train_ratio": 0.9,
         "learning_rate": 0.001,
-        "optimizer": "sgd",
+        "optimizer": "adam",
         "seq_len": 100
     },
     "dkt": {
@@ -20,6 +20,10 @@
         "hidden_size": 100
     },
     "dirt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "qakt":{
         "emb_size": 100,
         "hidden_size": 100
     }

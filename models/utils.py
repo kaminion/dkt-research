@@ -4,10 +4,14 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
 if torch.cuda.is_available():
-    from torch.cuda import FloatTensor
+    from torch.cuda import FloatTensor, CharTensor
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 else:
-    from torch import FloatTensor
+    from torch import FloatTensor, CharTensor
+
+from transformers import BertTokenizer
+
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 def match_seq_len(q_seqs, r_seqs, at_seqs, seq_len, pad_val=-1):
     '''
@@ -69,12 +73,12 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, seq_len, pad_val=-1):
         proc_at_seqs.append(
             np.concatenate([
                 at_seq[i:],
-                np.array([pad_val] * (i + seq_len + 1 - len(at_seq)))
+                np.array([' '] * (i + seq_len + 1 - len(at_seq)))
             ])
         )
         # 마지막 1개의 원소들은 패딩해서 넣게 됨
 
-    return proc_q_seqs, proc_r_seqs, proc_at_seqs 
+    return proc_q_seqs, proc_r_seqs, proc_at_seqs
 
 
 def collate_fn(batch, pad_val=-1):
@@ -102,13 +106,15 @@ def collate_fn(batch, pad_val=-1):
     qshft_seqs = []
     rshft_seqs = []
     at_seqs = []
+    atshft_seqs = []
 
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
     for q_seq, r_seq, at_seq in batch:
         q_seqs.append(FloatTensor(q_seq[:-1])) 
         r_seqs.append(FloatTensor(r_seq[:-1]))
-        at_seqs.append(FloatTensor(at_seq[:-1]))
+        at_seqs.append(at_seq[:-1])
+        atshft_seqs.append(at_seq[1:])
         qshft_seqs.append(FloatTensor(q_seq[1:]))
         rshft_seqs.append(FloatTensor(r_seq[1:]))
 
@@ -120,9 +126,9 @@ def collate_fn(batch, pad_val=-1):
     r_seqs = pad_sequence(
         r_seqs, batch_first=True, padding_value=pad_val
     )
-    at_seqs = pad_sequence(
-        at_seqs, batch_first=True, padding_value=pad_val
-    )
+    # at_seqs = pad_sequence(
+    #     at_seqs, batch_first=True, padding_value=pad_val
+    # )
     qshft_seqs = pad_sequence(
         qshft_seqs, batch_first=True, padding_value=pad_val
     )
@@ -138,12 +144,36 @@ def collate_fn(batch, pad_val=-1):
     mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
 
     # 원본 값의 다음 값이(shift value) 패딩이기만 해도 마스킹 시퀀스에 의해 값이 0로 변함. 아닐경우 원본 시퀀스 데이터를 가짐.
-    q_seqs, r_seqs, at_seqs, qshft_seqs, rshft_seqs = \
-        q_seqs * mask_seqs, r_seqs * mask_seqs, at_seqs * mask_seqs, qshft_seqs * mask_seqs, \
+    q_seqs, r_seqs, qshft_seqs, rshft_seqs = \
+        q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
         rshft_seqs * mask_seqs
 
+    # BERT preprocessing
+    bert_details = []
+    SENT_LEN = q_seqs.size(0)
+    for answer_text in at_seqs:
+        text = " ".join(answer_text)
+        encoded_bert_sent = bert_tokenizer.encode_plus(
+            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
+        )
+        bert_details.append(encoded_bert_sent)
+    
+    # 정답지 추가
+    proc_atshft_seqs = []
+    SENT_LEN = q_seqs.size(0)
+    for answer_text in atshft_seqs:
+        text = " ".join(answer_text)
+        encoded_bert_sent = bert_tokenizer.encode_plus(
+            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
+        )
+        proc_atshft_seqs.append(encoded_bert_sent)
 
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, at_seqs
+    bert_sentences = torch.LongTensor([text["input_ids"] for text in bert_details])
+    bert_sentence_types = torch.LongTensor([text["token_type_ids"] for text in bert_details])
+    bert_sentence_att_mask = torch.LongTensor([text["attention_mask"] for text in bert_details])
+    proc_atshft_sentences = torch.LongTensor([text["input_ids"] for text in proc_atshft_seqs])
+
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
 
 class SIMSE(nn.Module):
 

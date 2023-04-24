@@ -66,7 +66,8 @@ class ASSIST2009(Dataset):
         df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1').dropna(subset=["skill_name"])\
             .drop_duplicates(subset=["order_id", "skill_name"])\
             .sort_values(by=["order_id"])
-        
+        df['answer_text'] = df['answer_text'].fillna(' ')
+
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["user_id"].values)
         q_list = np.unique(df["skill_name"].values) 
@@ -87,7 +88,8 @@ class ASSIST2009(Dataset):
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
             q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
             r_seq = df_u["correct"].values # 유저의 정답여부 저장
-            at_seq = df_u["answer_text"].values
+            at_seq = df_u['answer_text'].values
+            
 
             # 해당 리스트들을 다시 리스트에 저장
             q_seqs.append(q_seq)
