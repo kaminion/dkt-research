@@ -11,6 +11,7 @@ from torch.optim import SGD, Adam
 from data_loaders.assist2009 import ASSIST2009
 
 from models.dkt import DKT
+from models.dkvmn import DKVMN
 from models.clkt import CLKT
 from models.mekt import MEKT
 from models.dirt import DeepIRT
@@ -74,6 +75,8 @@ def main(model_name, dataset_name):
     ## 가변 벡터이므로 **
     if model_name == "dkt":
         model = DKT(dataset.num_q, **model_config).to(device)
+    elif model_name == 'dkvmn':
+        model = DKVMN(dataset.num_q, **model_config).to(device)
     elif model_name == "clkt":
         model = CLKT(dataset.num_q, **model_config).to(device)
     elif model_name == "mekt":
