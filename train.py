@@ -54,7 +54,7 @@ def main(model_name, dataset_name):
 
     # wandb setting
     os.environ['WANDB_API_KEY'] = WANDB_API_KEY
-    wandb.init(config=train_config)
+    wandb.init(project=f"{model_name}_{dataset_name}", config=train_config)
 
 
     # 데이터셋 추가 가능
