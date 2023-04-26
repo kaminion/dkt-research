@@ -15,6 +15,10 @@
         "dim_s": 50,
         "size_m": 20
     },
+    "dkvmn+":{
+        "dim_s": 50,
+        "size_m": 20
+    },
     "clkt": {
         "emb_size": 100,
         "hidden_size": 100
