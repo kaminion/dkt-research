@@ -51,7 +51,7 @@ def main(model_name, dataset_name, use_wandb):
     learning_rate = train_config["learning_rate"]
     optimizer = train_config["optimizer"] # can be sgd, adam
     seq_len = train_config["seq_len"] # 샘플링 할 갯수
-
+    
     if use_wandb == True:
         # wandb setting
         os.environ['WANDB_API_KEY'] = WANDB_API_KEY
@@ -177,9 +177,13 @@ if __name__ == "__main__":
             [ASSIST2009]. \
             The default dataset is ASSIST2009."
     )
+
+    # true_list 에 없으면 자동적으로 false가 됨.
+    true_list = ['true', 'yes', '1', 't', 'y']
+
     parser.add_argument(
         '--use_wandb',
-        type=bool,
+        type= lambda s: s.lower() in true_list,
         default=True,
         help="This option value is using wandb"
     )
