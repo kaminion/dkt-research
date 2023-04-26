@@ -56,6 +56,16 @@ def main(model_name, dataset_name):
     os.environ['WANDB_API_KEY'] = WANDB_API_KEY
     wandb.init(project=f"{model_name}_{dataset_name}", config=train_config)
 
+    # sweep config // optimization을 위한
+    sweep_config = {
+        'method': 'grid'
+    }
+
+    metric = {
+        'name': 'loss',
+        'goal': 'minimize'
+    }
+
 
     # 데이터셋 추가 가능
     if dataset_name == "ASSIST2009":
