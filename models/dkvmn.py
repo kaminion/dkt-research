@@ -74,7 +74,7 @@ class DKVMN(Module):
         v = self.v_emb_layer(x) # 컨셉수, 응답 수.. 보통은 
         
         # Correlation Weight
-        w = torch.softmax(torch.matmul(k.T, self.Mk), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
+        w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
 
         # Write Process
         e = torch.sigmoid(self.e_layer(v))

@@ -24,7 +24,7 @@ import wandb
 
 
 # main program
-def main(model_name, dataset_name):
+def main(model_name, dataset_name, use_wandb):
     if not os.path.isdir("ckpts"):
         os.mkdir("ckpts")
     
@@ -52,19 +52,20 @@ def main(model_name, dataset_name):
     optimizer = train_config["optimizer"] # can be sgd, adam
     seq_len = train_config["seq_len"] # 샘플링 할 갯수
 
-    # wandb setting
-    os.environ['WANDB_API_KEY'] = WANDB_API_KEY
-    wandb.init(project=f"{model_name}_{dataset_name}", config=train_config)
+    if use_wandb == True:
+        # wandb setting
+        os.environ['WANDB_API_KEY'] = WANDB_API_KEY
+        wandb.init(project=f"{model_name}_{dataset_name}", config=train_config)
 
-    # sweep config // optimization을 위한
-    sweep_config = {
-        'method': 'grid'
-    }
+        # sweep config // optimization을 위한
+        sweep_config = {
+            'method': 'grid'
+        }
 
-    metric = {
-        'name': 'loss',
-        'goal': 'minimize'
-    }
+        metric = {
+            'name': 'loss',
+            'goal': 'minimize'
+        }
 
 
     # 데이터셋 추가 가능
@@ -176,6 +177,13 @@ if __name__ == "__main__":
             [ASSIST2009]. \
             The default dataset is ASSIST2009."
     )
+    parser.add_argument(
+        '--use_wandb',
+        type=bool,
+        default=True,
+        help="This option value is using wandb"
+    )
+
     args = parser.parse_args()
 
-    main(args.model_name, args.dataset_name)
+    main(args.model_name, args.dataset_name, args.use_wandb)
