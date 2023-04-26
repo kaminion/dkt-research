@@ -3,7 +3,7 @@ import os
 import numpy as np 
 import torch 
 
-from torch.nn import Module, Parameter, Embedding, Linear
+from torch.nn import Module, Parameter, Embedding, Linear, Dropout
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy
 from sklearn import metrics 
@@ -47,6 +47,8 @@ class DKVMN(Module):
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
         self.p_layer = Linear(self.dim_s, 1)
 
+        self.dropout_layer = Dropout(0.2)
+
     
     def forward(self, q, r):
         '''
@@ -77,4 +79,33 @@ class DKVMN(Module):
         # Write Process
         e = torch.sigmoid(self.e_layer(v))
         a = torch.tanh(self.a_layer(v))
-    
+
+        for et, at, wt in zip(
+            e.permute(1, 0, 2), a.permute(1, 0, 2), w.permute(1, 0, 2)
+        ):
+            Mvt = Mvt * (1 - (wt.unsqueeze(-1) * et.unsqueeze(1))) + \
+            (wt.unsqueeze(-1) * at.unsqueeze(1))
+            Mv.append(Mvt)
+        
+        Mv = torch.stack(Mv, dim=1)
+
+        # Read Process 
+        f = torch.tanh(
+            self.f_layer(
+            torch.cat(
+                [
+                    (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
+                    k
+                ],
+                dim=-1
+            )
+            )
+        )
+
+        p = self.p_layer(self.dropout_layer(f))
+
+        p = torch.sigmoid(p)
+
+        p = p.squeeze(-1)
+
+        return p
