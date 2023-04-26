@@ -88,7 +88,7 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
-        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1).repeat(1, 1, 100)) # 컨셉수, 응답 수.. 보통은 
+        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)) # 컨셉수, 응답 수.. 보통은 
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
