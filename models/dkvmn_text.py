@@ -154,6 +154,7 @@ class SUBJ_DKVMN(Module):
                 self.train()
                 
                 # 현재까지의 입력을 받은 뒤 다음 문제 예측
+                print(q.is_cuda, r.is_cuda, bert_s.is_cuda, bert_t.is_cuda, bert_m.is_cuda)
                 y, _ = self(q.long(), r.long(), bert_s, bert_t, bert_m)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴

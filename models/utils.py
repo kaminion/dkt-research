@@ -4,10 +4,10 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
 if torch.cuda.is_available():
-    from torch.cuda import FloatTensor, CharTensor
+    from torch.cuda import FloatTensor, CharTensor, LongTensor
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 else:
-    from torch import FloatTensor, CharTensor
+    from torch import FloatTensor, CharTensor, LongTensor
 
 from transformers import BertTokenizer
 
@@ -168,10 +168,10 @@ def collate_fn(batch, pad_val=-1):
         )
         proc_atshft_seqs.append(encoded_bert_sent)
 
-    bert_sentences = torch.LongTensor([text["input_ids"] for text in bert_details])
-    bert_sentence_types = torch.LongTensor([text["token_type_ids"] for text in bert_details])
-    bert_sentence_att_mask = torch.LongTensor([text["attention_mask"] for text in bert_details])
-    proc_atshft_sentences = torch.LongTensor([text["input_ids"] for text in proc_atshft_seqs])
+    bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
+    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
+    bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
+    proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
     return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
 

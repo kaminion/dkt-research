@@ -109,7 +109,7 @@ def main(model_name, dataset_name, use_wandb):
     test_size = len(dataset) - train_size
 
     train_dataset, test_dataset = random_split(
-        dataset, [train_size, test_size]
+        dataset, [train_size, test_size], generator=torch.Generator(device=device)
     )
 
     # pickle에 얼마만큼 분할했는지 저장
@@ -135,11 +135,11 @@ def main(model_name, dataset_name, use_wandb):
     # Loader에 데이터 적재
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn
+        collate_fn=collate_fn, generator=torch.Generator(device=device)
     )
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn
+        collate_fn=collate_fn, generator=torch.Generator(device=device)
     )
 
     if optimizer == "sgd":
