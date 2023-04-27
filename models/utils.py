@@ -154,7 +154,7 @@ def collate_fn(batch, pad_val=-1):
     for answer_text in at_seqs:
         text = " ".join(answer_text)
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
+            text, add_special_tokens=True, padding='max_length'
         )
         bert_details.append(encoded_bert_sent)
     
@@ -164,7 +164,7 @@ def collate_fn(batch, pad_val=-1):
     for answer_text in atshft_seqs:
         text = " ".join(answer_text)
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
+            text, add_special_tokens=True, padding='max_length'
         )
         proc_atshft_seqs.append(encoded_bert_sent)
 

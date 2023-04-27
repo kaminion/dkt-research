@@ -5,7 +5,7 @@ import torch
 
 from torch.nn import Module, Parameter, Embedding, Linear, Dropout, TransformerEncoder, TransformerEncoderLayer
 from torch.nn.init import kaiming_normal_
-from torch.nn.functional import binary_cross_entropy
+from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
 from transformers import BertModel, BertConfig
 
@@ -81,6 +81,8 @@ class SUBJ_DKVMN(Module):
                        ).last_hidden_state)
 
         batch_size = x.shape[0]
+        pad_size = 100 - batch_size # constant variable을 지정해줄 필요가 있음.
+
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
         Mvt = self.Mv0.unsqueeze(0).repeat(batch_size, 1, 1) # parameter로 메모리 사이즈만큼, 그리고 임베딩 공간만큼 구해줬음
@@ -88,7 +90,10 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
-        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)) # 컨셉수, 응답 수.. 보통은 
+        x = pad(x, (0, 0, 0, 0, 0, pad_size)) # 좌, 우, 위, 아래, 앞, 뒤 패딩 줄 위치를 지정한다.
+        em_at = pad(em_at, (0, 0, 0, pad_size, 0, pad_size))
+        print(x.shape, em_at.shape)
+        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)) # 컨셉수, 응답 수
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
