@@ -47,11 +47,13 @@ class SUBJ_DKVMN(Module):
         # BERT for feature extraction
         bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at_emb_layer = Linear(768, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
-        self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
+        # self.v_emb_layer = Embedding(2 * self.num_q + 100 ** 2, self.dim_s)
+        self.v_emb_layer = Linear(self.dim_s + 768, self.dim_s)
+
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
 
@@ -75,13 +77,12 @@ class SUBJ_DKVMN(Module):
                 Mv: the value matrices from q, r, at
         '''
         x = self.qr_emb_layer(q + self.num_q * r)
-        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_t,
                        token_type_ids=at_m
-                       ).last_hidden_state)
-
+                       ).last_hidden_state
         batch_size = x.shape[0]
-        pad_size = 100 - batch_size # constant variable을 지정해줄 필요가 있음.
+        em_at = pad(em_at, (0, 0, 0, x.shape[1] - em_at.shape[1], 0, 0))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -90,23 +91,19 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
-        x = pad(x, (0, 0, 0, 0, 0, pad_size)) # 좌, 우, 위, 아래, 앞, 뒤 패딩 줄 위치를 지정한다.
-        em_at = pad(em_at, (0, 0, 0, pad_size, 0, pad_size))
-        print(x.shape, em_at.shape)
         v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)) # 컨셉수, 응답 수
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
-
         # Write Process
         e = torch.sigmoid(self.e_layer(v))
         a = torch.tanh(self.a_layer(v))
 
+        # [100, 100, 20] [100, 100, 50] [100, 100, 50]
         for et, at, wt in zip(
             e.permute(1, 0, 2), a.permute(1, 0, 2), w.permute(1, 0, 2)
         ):
-            Mvt = Mvt * (1 - (wt.unsqueeze(-1) * et.unsqueeze(1))) + \
-            (wt.unsqueeze(-1) * at.unsqueeze(1))
+            Mvt = Mvt * (1 - (wt.unsqueeze(-1) * et.unsqueeze(1))) + (wt.unsqueeze(-1) * at.unsqueeze(1))
             Mv.append(Mvt)
         
         Mv = torch.stack(Mv, dim=1)
@@ -154,7 +151,6 @@ class SUBJ_DKVMN(Module):
                 self.train()
                 
                 # 현재까지의 입력을 받은 뒤 다음 문제 예측
-                print(q.is_cuda, r.is_cuda, bert_s.is_cuda, bert_t.is_cuda, bert_m.is_cuda)
                 y, _ = self(q.long(), r.long(), bert_s, bert_t, bert_m)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴

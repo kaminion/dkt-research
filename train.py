@@ -3,11 +3,14 @@ import argparse
 import json
 import pickle
 
+import numpy as np
+
 import torch
 
 from torch.utils.data import DataLoader, random_split
 from torch.optim import SGD, Adam
-
+from torch.nn.functional import binary_cross_entropy, pad
+from sklearn import metrics 
 from data_loaders.assist2009 import ASSIST2009
 
 from models.dkt import DKT
@@ -22,7 +25,75 @@ from models.utils import collate_fn
 # wandb
 import wandb
 
+def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
+    '''
+        Args:
+            train_loader: the PyTorch DataLoader instance for training
+            test_loader: the PyTorch DataLoader instance for test
+            num_epochs: the number of epochs
+            opt: the optimization to train this model
+            ckpt_path: the path to save this model's parameters
+    '''
+    aucs = []
+    loss_means = []  
 
+    max_auc = 0
+
+    for i in range(0, num_epochs):
+        loss_mean = []
+
+        for data in train_loader:
+            # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
+            q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
+            model.train()
+            
+            # 현재까지의 입력을 받은 뒤 다음 문제 예측
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m)
+            t = torch.masked_select(r, m)
+
+            opt.zero_grad()
+            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss.backward()
+            opt.step()
+
+            loss_mean.append(loss.detach().cpu().numpy())
+
+        with torch.no_grad():
+            for data in test_loader:
+                q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
+
+                model.eval()
+
+                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(r, m).detach().cpu()
+
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
+                )
+
+                loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+                
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    max_auc = auc
+
+                aucs.append(auc)
+                loss_means.append(loss_mean)
+
+    return aucs, loss_means
 
 # main program
 def main(model_name, dataset_name, use_wandb):
@@ -86,11 +157,11 @@ def main(model_name, dataset_name, use_wandb):
     
     ## 가변 벡터이므로 **
     if model_name == "dkt":
-        model = DKT(dataset.num_q, **model_config).to(device)
+        model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn':
         model = DKVMN(dataset.num_q, **model_config).to(device)
     elif model_name == 'dkvmn+':
-        model = SUBJ_DKVMN(dataset.num_q, **model_config).to(device)
+        model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == "clkt":
         model = CLKT(dataset.num_q, **model_config).to(device)
     elif model_name == "mekt":
@@ -151,8 +222,8 @@ def main(model_name, dataset_name, use_wandb):
 
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
     aucs, loss_means = \
-        model.train_model(
-            train_loader, test_loader, num_epochs, opt, ckpt_path
+        train_model(
+            model, train_loader, test_loader, num_epochs, opt, ckpt_path
         )
     
     with open(os.path.join(ckpt_path, "aucs.pkl"), "wb") as f:

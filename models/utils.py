@@ -147,6 +147,9 @@ def collate_fn(batch, pad_val=-1):
     q_seqs, r_seqs, qshft_seqs, rshft_seqs = \
         q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
         rshft_seqs * mask_seqs
+    
+
+    # Word2vec
 
     # BERT preprocessing
     bert_details = []
@@ -154,7 +157,7 @@ def collate_fn(batch, pad_val=-1):
     for answer_text in at_seqs:
         text = " ".join(answer_text)
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, padding='max_length'
+            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
         )
         bert_details.append(encoded_bert_sent)
     
@@ -164,7 +167,7 @@ def collate_fn(batch, pad_val=-1):
     for answer_text in atshft_seqs:
         text = " ".join(answer_text)
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, padding='max_length'
+            text, max_length=SENT_LEN, add_special_tokens=True, pad_to_max_length=True
         )
         proc_atshft_seqs.append(encoded_bert_sent)
 
@@ -175,7 +178,7 @@ def collate_fn(batch, pad_val=-1):
 
     return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
 
-class SIMSE(nn.Module):
+class SIMSE(nn.Module): 
 
     def __init__(self):
         super(SIMSE, self).__init__()
