@@ -19,6 +19,12 @@
         "dim_s": 50,
         "size_m": 20
     },
+    "sakt":{
+        "n": 100,
+        "d": 100,
+        "num_attn_heads": 5,
+        "dropout": 0.2
+    },
     "clkt": {
         "emb_size": 100,
         "hidden_size": 100
