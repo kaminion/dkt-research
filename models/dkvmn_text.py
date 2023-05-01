@@ -3,7 +3,7 @@ import os
 import numpy as np 
 import torch 
 
-from torch.nn import Module, Parameter, Embedding, Linear, Dropout, TransformerEncoder, TransformerEncoderLayer
+from torch.nn import Module, Parameter, Embedding, Linear, Dropout, TransformerEncoder, TransformerEncoderLayer, Sequential, LayerNorm, ReLU
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
@@ -33,6 +33,7 @@ class SUBJ_DKVMN(Module):
         # Left network
         # q_t를 받는 부분, 논문상에서 A 과정, K_t라고 볼 수 있음
         self.k_emb_layer = Embedding(self.num_q, self.dim_s)
+        self.d_emb_layer = Embedding(self.num_q, self.dim_s)
         self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
         self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
 
@@ -47,12 +48,20 @@ class SUBJ_DKVMN(Module):
         # BERT for feature extraction
         bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        # self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at_emb_layer = Sequential(
+        #     Linear(768, self.dim_s),
+        #     ReLU(),
+        #     LayerNorm(self.dim_s)
+        # )
+        self.at_emb_layer = Linear(768, self.dim_s)
+        self.at2_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.qr2_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         # self.v_emb_layer = Embedding(2 * self.num_q + 100 ** 2, self.dim_s)
-        self.v_emb_layer = Linear(self.dim_s + 768, self.dim_s)
+        self.v_emb_layer = Linear(2 * self.dim_s, 2 * self.dim_s)
+        # self.v2_emb_layer = Linear(self.wordlen, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
@@ -65,7 +74,7 @@ class SUBJ_DKVMN(Module):
         
 
     
-    def forward(self, q, r, at_s, at_t, at_m):
+    def forward(self, q, r, at_s, at_t, at_m, q2diff):
         '''
             Args: 
                 q: the question(KC) sequence with the size of [batch_size, n]
@@ -76,13 +85,15 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + self.num_q * r)
-        em_at = self.bertmodel(input_ids=at_s,
+        x = self.qr2_emb_layer(self.qr_emb_layer(q + self.num_q * r).permute(0, 2, 1))
+        batch_size = x.shape[0]
+
+        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
                        attention_mask=at_t,
                        token_type_ids=at_m
-                       ).last_hidden_state
-        batch_size = x.shape[0]
-        em_at = pad(em_at, (0, 0, 0, x.shape[1] - em_at.shape[1], 0, 0))
+                       ).last_hidden_state)
+        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
+        # em_at = pad(em_at, (0, 0, 0, x.shape[1] - em_at.shape[1], 0, 0))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -91,9 +102,13 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
-        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)) # 컨셉수, 응답 수
-        
+        # print(f"#1 {x.shape} {em_at.shape}")
+        v = self.v_emb_layer(torch.concat([x, em_at], dim=-1)).permute(0, 2, 1) # 컨셉수, 응답 수
+        # v = self.v2_emb_layer(v)
+        # print(torch.matmul(k, v).shape, k.shape, v.shape)
+        # v = torch.matmul(k, v)
         # Correlation Weight
+        # print(f"#2 {v.shape} {k.shape}")
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
         # Write Process
         e = torch.sigmoid(self.e_layer(v))
@@ -108,13 +123,15 @@ class SUBJ_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
+        # print(w.unsqueeze(-1).shape, Mv.shape)
+        diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
             self.f_layer(
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k
+                    k + diff
                 ],
                 dim=-1
             )

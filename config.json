@@ -1,6 +1,6 @@
 {
     "train_config": {
-        "batch_size": 100,
+        "batch_size": 24,
         "num_epochs": 100,
         "train_ratio": 0.8,
         "learning_rate": 0.001,

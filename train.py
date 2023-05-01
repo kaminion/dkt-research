@@ -44,11 +44,11 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         for data in train_loader:
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-            q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
+            q, r, _, _, m, bert_s, bert_t, bert_m, q2diff_seqs = data
             model.train()
-            
+
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -63,11 +63,11 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         with torch.no_grad():
             for data in test_loader:
-                q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
+                q, r, _, _, m, bert_s, bert_t, bert_m, q2diff_seqs = data
 
                 model.eval()
 
-                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
