@@ -48,7 +48,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            y, _ = model(q.long(), r.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -67,7 +67,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
                 model.eval()
 
-                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+                y, _ = model(q.long(), r.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
