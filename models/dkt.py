@@ -57,7 +57,7 @@ class DKT(Module):
             loss_mean = []
 
             for data in train_loader:
-                q, r, qshift, rshift, m = data
+                q, r, qshift, rshift, m, _, _, _, _ = data
 
                 self.train()
                 
@@ -86,7 +86,7 @@ class DKT(Module):
 
             with torch.no_grad():
                 for data in test_loader:
-                    q, r, qshift, rshift, m = data 
+                    q, r, qshift, rshift, m, _, _, _, _ = data 
 
                     self.eval()
 

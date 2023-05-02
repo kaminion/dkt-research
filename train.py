@@ -9,7 +9,7 @@ import torch
 
 from torch.utils.data import DataLoader, random_split
 from torch.optim import SGD, Adam
-from torch.nn.functional import binary_cross_entropy, pad
+from torch.nn.functional import binary_cross_entropy, pad, one_hot
 from sklearn import metrics 
 from data_loaders.assist2009 import ASSIST2009
 
@@ -52,11 +52,12 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long())
+            y = model(q.long(), r.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
             t = torch.masked_select(r, m)
+
 
             opt.zero_grad()
             loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
@@ -71,7 +72,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
                 model.eval()
 
-                y, _ = model(q.long(), r.long())
+                y = model(q.long(), r.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -161,7 +162,7 @@ def main(model_name, dataset_name, use_wandb):
     
     ## 가변 벡터이므로 **
     if model_name == "dkt":
-        model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
+        model = DKT(dataset.num_q, **model_config).to(device)
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
@@ -233,6 +234,8 @@ def main(model_name, dataset_name, use_wandb):
         train_model(
             model, train_loader, test_loader, num_epochs, opt, ckpt_path
         )
+    # DKT나 다른 모델 학습용
+    # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
     
     with open(os.path.join(ckpt_path, "aucs.pkl"), "wb") as f:
         pickle.dump(aucs, f)
