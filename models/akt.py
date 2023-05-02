@@ -20,8 +20,8 @@ class AKT(nn.Module):
             n_heads: number of heads in multi-headed attention
             d_ff: dimension for fully connected net inside the basic block
     '''
-    def __init__(self, n_question, n_pid, d_model, n_blocks,
-                 kq_same, dropout, model_type, final_fc_dim=512, n_heads=8, d_ff=2048, l2=1e-5,
+    def __init__(self, n_question, n_pid, d_model=255, n_blocks=1,
+                 kq_same=True, dropout=0.05, model_type={'akt'}, final_fc_dim=512, n_heads=8, d_ff=2048, l2=1e-5,
                  separate_qa=False
                 ):
         super(AKT, self).__init__()

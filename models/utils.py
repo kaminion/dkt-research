@@ -13,7 +13,7 @@ from transformers import BertTokenizer
 
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
-def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, seq_len, pad_val=-1):
+def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, seq_len, pad_val=-1):
     '''
         Args: 
             q_seqs: the question(KC) sequence with the size of \
@@ -44,6 +44,7 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, seq_len, pad_val=-1):
     proc_r_seqs = []
     proc_at_seqs = []
     proc_q2diff = []
+    proc_pid_seqs = []
 
     # seq_len은 q_seqs와 r_seqs를 같은 길이로 매치하는 시퀀스 길이를 의미함.
     # q_seq는 유저의 스킬에 대한 인덱스 리스트를 갖는 리스트임.

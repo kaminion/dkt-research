@@ -22,6 +22,7 @@ from models.clkt import CLKT
 from models.mekt import MEKT
 from models.dirt import DeepIRT
 from models.qakt import QAKT
+from models.akt import AKT
 
 
 from models.utils import collate_fn
@@ -52,7 +53,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y = model(q.long(), r.long())
+            y, _ = model(q.long(), r.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -72,7 +73,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
                 model.eval()
 
-                y = model(q.long(), r.long())
+                y, _ = model(q.long(), r.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -171,6 +172,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
+    elif model_name == 'akt':
+        model = torch.nn.DataParallel(AKT(n_question=dataset.num_q)).to(device)
     elif model_name == "clkt":
         model = CLKT(dataset.num_q, **model_config).to(device)
     elif model_name == "mekt":

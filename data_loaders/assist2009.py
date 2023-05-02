@@ -15,6 +15,7 @@ Q_LIST_PICKLE = "q_list.pkl"
 U_LIST_PICKLE = "u_list.pkl"
 Q_IDX_PICKLE = "q2idx.pkl"
 Q_DIFF_PICKLE = 'q2diff.pkl'
+P_ID_PICKLE = 'pid.pkl'
 
 class ASSIST2009(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
@@ -41,9 +42,11 @@ class ASSIST2009(Dataset):
                 self.q2idx = pickle.load(f)
             with open(os.path.join(self.dataset_dir, Q_DIFF_PICKLE), "rb") as f:
                 self.q2diff = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
+                self.pid_seqs = pickle.load(f)
         else:
             self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, self.u_list, self.q2idx, \
-                self.q2diff = self.preprocess()
+                self.q2diff, self.pid_seqs = self.preprocess()
             
         
         def mapmax(data):
@@ -51,16 +54,18 @@ class ASSIST2009(Dataset):
         # 유저와 문제 갯수 저장
         self.num_u = self.u_list.shape[0]
         self.num_q = self.q_list.shape[0]
+        self.num_pid = self.pid_seqs.shape[0]
+
         self.wordlen = len(max(map(mapmax, self.at_seqs), key=len)) # 최대길이
 
         if seq_len:
-            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff = \
-                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, seq_len)
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, seq_len)
 
         self.len = len(self.q_seqs)
     
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.pid_seqs[index]
     
     def __len__(self):
         return self.len
@@ -85,6 +90,7 @@ class ASSIST2009(Dataset):
         r_seqs = []
         at_seqs = []
         q2diff = []
+        pid_seqs = []
 
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
@@ -101,6 +107,7 @@ class ASSIST2009(Dataset):
             q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
             r_seq = df_u["correct"].values # 유저의 정답여부 저장
             at_seq = df_u['answer_text'].values
+            pid_seq = df_u['problem_id'].values
 
             # 유저가 푼 문제들의 정오답 비율을 구함
             d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
@@ -110,6 +117,7 @@ class ASSIST2009(Dataset):
             r_seqs.append(r_seq)
             at_seqs.append(at_seq)
             q2diff.append(d_seq)
+            pid_seqs.append(pid_seq)
 
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
@@ -126,4 +134,4 @@ class ASSIST2009(Dataset):
         with open(os.path.join(self.dataset_dir, Q_DIFF_PICKLE), "wb") as f:
             pickle.dump(q2diff, f)
 
-        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs
