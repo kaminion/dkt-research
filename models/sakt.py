@@ -1,6 +1,3 @@
-import os 
-
-import numpy as np
 import torch 
 
 from torch.nn import Module, Parameter, Embedding, Sequential, Linear, ReLU, \
@@ -78,7 +75,7 @@ class SAKT(Module):
 
         M = M + P
 
-        S, attn_weights = self.attn(E, M, M, attn_weights=causal_mask)
+        S, attn_weights = self.attn(E, M, M, attn_mask=causal_mask)
         S = self.attn_dropout(S)
         S = S.permute(1, 0, 2)
         M = M.permute(1, 0, 2)

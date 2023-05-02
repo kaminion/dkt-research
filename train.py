@@ -17,6 +17,7 @@ from models.dkt import DKT
 from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
 from models.sakt import SAKT
+from models.saint import SAINT
 from models.clkt import CLKT
 from models.mekt import MEKT
 from models.dirt import DeepIRT
@@ -47,7 +48,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         for data in train_loader:
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-            q, r, _, _, m, bert_s, bert_t, bert_m, q2diff_seqs = data
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs = data
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
@@ -66,7 +67,7 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         with torch.no_grad():
             for data in test_loader:
-                q, r, _, _, m, bert_s, bert_t, bert_m, q2diff_seqs = data
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs = data
 
                 model.eval()
 
@@ -167,6 +168,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
+    elif model_name == 'saint':
+        model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
     elif model_name == "clkt":
         model = CLKT(dataset.num_q, **model_config).to(device)
     elif model_name == "mekt":
