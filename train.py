@@ -49,19 +49,21 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         for data in train_loader:
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs = data
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs = data
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long())
+            # y, _ = model(q.long(), r.long())
+
+            # AKT LOSS
+            y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
             t = torch.masked_select(r, m)
 
-
             opt.zero_grad()
-            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss = binary_cross_entropy(y, t) 
             loss.backward()
             opt.step()
 
@@ -69,11 +71,11 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
         with torch.no_grad():
             for data in test_loader:
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs = data
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs = data
 
                 model.eval()
 
-                y, _ = model(q.long(), r.long())
+                y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -173,7 +175,7 @@ def main(model_name, dataset_name, use_wandb):
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'akt':
-        model = torch.nn.DataParallel(AKT(n_question=dataset.num_q)).to(device)
+        model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
     elif model_name == "clkt":
         model = CLKT(dataset.num_q, **model_config).to(device)
     elif model_name == "mekt":

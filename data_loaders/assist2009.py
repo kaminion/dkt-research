@@ -16,6 +16,7 @@ U_LIST_PICKLE = "u_list.pkl"
 Q_IDX_PICKLE = "q2idx.pkl"
 Q_DIFF_PICKLE = 'q2diff.pkl'
 P_ID_PICKLE = 'pid.pkl'
+P_LIST_PICKLE = "p_list.pkl"
 
 class ASSIST2009(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
@@ -44,9 +45,11 @@ class ASSIST2009(Dataset):
                 self.q2diff = pickle.load(f)
             with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
                 self.pid_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "rb") as f:
+                self.pid_list = pickle.load(f)
         else:
             self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, self.u_list, self.q2idx, \
-                self.q2diff, self.pid_seqs = self.preprocess()
+                self.q2diff, self.pid_seqs, self.pid_list = self.preprocess()
             
         
         def mapmax(data):
@@ -54,7 +57,7 @@ class ASSIST2009(Dataset):
         # 유저와 문제 갯수 저장
         self.num_u = self.u_list.shape[0]
         self.num_q = self.q_list.shape[0]
-        self.num_pid = self.pid_seqs.shape[0]
+        self.num_pid = self.pid_list.shape[0]
 
         self.wordlen = len(max(map(mapmax, self.at_seqs), key=len)) # 최대길이
 
@@ -80,11 +83,13 @@ class ASSIST2009(Dataset):
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["user_id"].values)
         q_list = np.unique(df["skill_name"].values) 
+        pid_list = np.unique(df["problem_id"].values)
 
         # map 형태로 스킬이름: index 자료 저장, 유저도 유저명: 인덱스로 저장
         u2idx = {u: idx for idx, u in enumerate(u_list)}
         q2idx = {q: idx for idx, q in enumerate(q_list)}
         d2idx = {}
+        p2idx = {pid: idx for idx, pid in enumerate(pid_list)}
 
         q_seqs = []
         r_seqs = []
@@ -107,7 +112,7 @@ class ASSIST2009(Dataset):
             q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
             r_seq = df_u["correct"].values # 유저의 정답여부 저장
             at_seq = df_u['answer_text'].values
-            pid_seq = df_u['problem_id'].values
+            pid_seq = np.array([p2idx[pid] for pid in df_u['problem_id']]) # 유저가 푼 문제에 대한 해당 문제의 인덱스 리스트들을 np.array로 형변환
 
             # 유저가 푼 문제들의 정오답 비율을 구함
             d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
@@ -133,5 +138,9 @@ class ASSIST2009(Dataset):
             pickle.dump(q2idx, f)
         with open(os.path.join(self.dataset_dir, Q_DIFF_PICKLE), "wb") as f:
             pickle.dump(q2diff, f)
+        with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "wb") as f:
+            pickle.dump(pid_seqs, f)
+        with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "wb") as f:
+            pickle.dump(pid_list, f)
 
-        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs, pid_list

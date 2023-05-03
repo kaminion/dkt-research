@@ -1,5 +1,6 @@
 import torch 
 from torch import nn
+from torch.nn import MultiheadAttention
 from torch.nn.init import xavier_uniform_
 from torch.nn.init import constant_
 import math 
@@ -20,8 +21,8 @@ class AKT(nn.Module):
             n_heads: number of heads in multi-headed attention
             d_ff: dimension for fully connected net inside the basic block
     '''
-    def __init__(self, n_question, n_pid, d_model=255, n_blocks=1,
-                 kq_same=True, dropout=0.05, model_type={'akt'}, final_fc_dim=512, n_heads=8, d_ff=2048, l2=1e-5,
+    def __init__(self, n_question, n_pid, d_model=256, n_blocks=1,
+                 kq_same=True, dropout=0.05, model_type='akt', final_fc_dim=512, n_heads=8, d_ff=1024, l2=1e-5,
                  separate_qa=False
                 ):
         super(AKT, self).__init__()
@@ -66,6 +67,7 @@ class AKT(nn.Module):
 
     def forward(self, q_data, qa_data, target, pid_data=None):
         # Batch first
+        qa_data = (q_data + target)
         q_embed_data = self.q_embed(q_data) # BS, seqlen, d_model # c_ct
         if self.separate_qa:
             # BS, seqlen, d_model #f_(ct, rt)
@@ -100,15 +102,15 @@ class AKT(nn.Module):
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
         output = self.out(concat_q)
-        labels = target.reshape(-1)
-        m = nn.Sigmoid()
-        preds = (output.reshape(-1)) # logit 
-        mask = labels > -0.9
-        masked_labels = labels[mask].float()
-        masked_preds = preds[mask]
-        loss = nn.BCEWithLogitsLoss(reduction='none')
-        output = loss(masked_preds, masked_labels)
-        return output.sum() + c_reg_loss, m(preds), mask.sum()
+        # labels = target.reshape(-1)
+        # m = nn.Sigmoid()
+        #preds = (output.reshape(-1)) # logit 
+        preds = output.squeeze(-1)
+        # mask = labels > -0.9
+        # masked_labels = labels[mask].float()
+        # masked_preds = preds[mask]
+        # loss = nn.BCEWithLogitsLoss(reduction='none')
+        return torch.sigmoid(preds), c_reg_loss
 
 
 class Architecture(nn.Module):
@@ -175,12 +177,11 @@ class TransformerLayer(nn.Module):
                  d_ff, n_heads, dropout, kq_same):
         super(TransformerLayer, self).__init__()
         kq_same = kq_same == 1
-        
         # Multi-Head Attention Block
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same
         )
-
+        
         # Two layer norm layer and two dropout layer
         self.layer_norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(dropout)
@@ -203,9 +204,9 @@ class TransformerLayer(nn.Module):
 
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
-            np.ones((1, 1, seqlen, seqlen), k=mask).astype('uint8')
-        )
-        src_mask = (torch.from_numpy(nopeek_mask) == 0)
+            np.ones((1, 1, seqlen, seqlen)), k=mask
+        ).astype('uint8')
+        src_mask = (torch.from_numpy(nopeek_mask) == 0).cuda()
         if mask == 0: # If0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
@@ -260,8 +261,8 @@ class MultiHeadAttention(nn.Module):
             xavier_uniform_(self.q_linear.weight)
 
         if self.proj_bias:
-            constant_(self.k_linear.bias, 0)
-            constant_(self.v_linear.bias, 0)
+            constant_(self.k_linear.bias, 0.)
+            constant_(self.v_linear.bias, 0.)
             if self.kq_same is False:
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
@@ -271,7 +272,8 @@ class MultiHeadAttention(nn.Module):
         bs = q.size(0)
         
         # perform linear operation and split into h heads 
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
+        k = self.k_linear(k)
+        k = k.view(bs, -1, self.h, self.d_k)
         if self.kq_same is False:
             q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
         else:
@@ -305,18 +307,18 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
         math.sqrt(d_k) # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
 
-    x1 = torch.arange(seqlen).expand(seqlen, -1)
+    x1 = torch.arange(seqlen).expand(seqlen, -1).cuda()
     x2 = x1.transpose(0, 1).contiguous()
 
     with torch.no_grad():
         scores_ = scores.masked_fill(mask == 0, -1e32)
         scores_ = F.softmax(scores_, dim=-1)
-        scores_ = scores_ * mask.float()
+        scores_ = scores_ * mask.float().cuda()
         distcum_scores = torch.cumsum(scores_, dim=-1)
         disttotal_scores = torch.sum(
             scores_, dim=-1, keepdim=True 
         ) # bs, 8, s1, 1
-        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor) # 1, 1, seqlen, seqlen
+        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
         # bs, 8, s1, s1 positive distance
         dist_scores = torch.clamp(
             (disttotal_scores - distcum_scores) * position_effect, min=0.
@@ -333,7 +335,7 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)
     if zero_pad:
-        pad_zero = torch.zeros(bs, head, 1, seqlen)
+        pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
         scores = torch.cat([pad_zero, scores[:, :, 1:, :]], dim=2)
     scores = dropout(scores)
     output = torch.matmul(scores, v)

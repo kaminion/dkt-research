@@ -49,13 +49,14 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, seq_len, pad_val=-1
     # seq_len은 q_seqs와 r_seqs를 같은 길이로 매치하는 시퀀스 길이를 의미함.
     # q_seq는 유저의 스킬에 대한 인덱스 리스트를 갖는 리스트임.
     # 주어진 q, r시퀀스들을 seq_len 만큼 자르는 것이라고 보면 됨
-    for q_seq, r_seq, at_seq, q2d in zip(q_seqs, r_seqs, at_seqs, q2diff):
+    for q_seq, r_seq, at_seq, q2d, pid_seq in zip(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs):
         i = 0
         while i + seq_len + 1 < len(q_seq): # i + seq_len + 1 이 주어진 문제 집합보다 길이가 작을 때, e.g.) 0 + 100 + 1 < 128
             proc_q_seqs.append(q_seq[i:i + seq_len + 1]) # i부터 i + seq_len + 1 범위의 elements를 퀘스천 시퀀스에 넣음 e.g.) 0부터 0 + 100 + 1 원소의 배열 시퀀스를 proc_q에 할당함
             proc_r_seqs.append(r_seq[i:i + seq_len + 1]) # 위와 동일. e.g.) 0부터 0 + 100 + 1 원소 배열 시퀀스를 proc_r에 할당함
             proc_at_seqs.append(at_seq[i:i + seq_len + 1])
             proc_q2diff.append(q2d[i:i + seq_len + 1])
+            proc_pid_seqs.append(pid_seq[i:i + seq_len + 1])
 
             i += seq_len + 1 # i에 seq_len + 1을 더하여 len(q_seq)보다 크게 만듬
 
@@ -85,9 +86,15 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, seq_len, pad_val=-1
                 np.array([pad_val] * (i + seq_len + 1 - len(q_seq)))
             ])
         )
+        proc_pid_seqs.append(
+            np.concatenate([
+                pid_seq[i:],
+                np.array([pad_val] * (i + seq_len + 1 - len(pid_seq)))
+            ])
+        )
         # 마지막 1개의 원소들은 패딩해서 넣게 됨
 
-    return proc_q_seqs, proc_r_seqs, proc_at_seqs, proc_q2diff
+    return proc_q_seqs, proc_r_seqs, proc_at_seqs, proc_q2diff, proc_pid_seqs
 
 
 def collate_fn(batch, pad_val=-1):
@@ -117,10 +124,11 @@ def collate_fn(batch, pad_val=-1):
     at_seqs = []
     atshft_seqs = []
     q2diff_seqs = []
+    pid_seqs = []
 
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
-    for q_seq, r_seq, at_seq, q2diff in batch:
+    for q_seq, r_seq, at_seq, q2diff, pid_seq in batch:
         q_seqs.append(FloatTensor(q_seq[:-1])) 
         r_seqs.append(FloatTensor(r_seq[:-1]))
         at_seqs.append(at_seq[:-1])
@@ -128,6 +136,7 @@ def collate_fn(batch, pad_val=-1):
         qshft_seqs.append(FloatTensor(q_seq[1:]))
         rshft_seqs.append(FloatTensor(r_seq[1:]))
         q2diff_seqs.append(FloatTensor(q2diff[:-1]))
+        pid_seqs.append(FloatTensor(pid_seq[:-1]))
 
     # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
     # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
@@ -146,6 +155,9 @@ def collate_fn(batch, pad_val=-1):
     rshft_seqs = pad_sequence(
         rshft_seqs, batch_first=True, padding_value=pad_val
     )
+    pid_seqs = pad_sequence(
+        pid_seqs, batch_first=True, padding_value=pad_val
+    )
 
     # 마스킹 시퀀스 생성 
     # 일반 question 시퀀스: 패딩 밸류와 다른 값들은 모두 1로 처리, 패딩 처리된 값들은 0으로 처리.
@@ -155,9 +167,9 @@ def collate_fn(batch, pad_val=-1):
     mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
 
     # 원본 값의 다음 값이(shift value) 패딩이기만 해도 마스킹 시퀀스에 의해 값이 0로 변함. 아닐경우 원본 시퀀스 데이터를 가짐.
-    q_seqs, r_seqs, qshft_seqs, rshft_seqs, q2diff_seqs = \
+    q_seqs, r_seqs, qshft_seqs, rshft_seqs, q2diff_seqs, pid_seqs = \
         q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
-        rshft_seqs * mask_seqs, q2diff_seqs * mask_seqs
+        rshft_seqs * mask_seqs, q2diff_seqs * mask_seqs, pid_seqs * mask_seqs
     
 
     # Word2vec
@@ -193,7 +205,7 @@ def collate_fn(batch, pad_val=-1):
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
     proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs
 
 class SIMSE(nn.Module): 
 

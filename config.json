@@ -25,6 +25,10 @@
         "num_attn_heads": 5,
         "dropout": 0.2
     },
+    "akt":{ 
+        "n_blocks":1,
+        "dropout":0.05
+    },
     "saint":{
         "n": 100,
         "d": 30,
