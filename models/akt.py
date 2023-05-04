@@ -206,7 +206,8 @@ class TransformerLayer(nn.Module):
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask
         ).astype('uint8')
-        src_mask = (torch.from_numpy(nopeek_mask) == 0).cuda()
+        # src_mask = (torch.from_numpy(nopeek_mask) == 0).cuda()
+        src_mask = (torch.from_numpy(nopeek_mask) == 0)
         if mask == 0: # If0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
@@ -307,18 +308,22 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
         math.sqrt(d_k) # BS, 8, seqlen, seqlen
     bs, head, seqlen = scores.size(0), scores.size(1), scores.size(2)
 
-    x1 = torch.arange(seqlen).expand(seqlen, -1).cuda()
+    # x1 = torch.arange(seqlen).expand(seqlen, -1).cuda()
+    x1 = torch.arange(seqlen).expand(seqlen, -1)
     x2 = x1.transpose(0, 1).contiguous()
 
     with torch.no_grad():
         scores_ = scores.masked_fill(mask == 0, -1e32)
         scores_ = F.softmax(scores_, dim=-1)
-        scores_ = scores_ * mask.float().cuda()
+        # scores_ = scores_ * mask.float().cuda()
+        scores_ = scores_ * mask.float()
         distcum_scores = torch.cumsum(scores_, dim=-1)
         disttotal_scores = torch.sum(
             scores_, dim=-1, keepdim=True 
         ) # bs, 8, s1, 1
-        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
+        # position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
+        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor) # 1, 1, seqlen, seqlen
+
         # bs, 8, s1, s1 positive distance
         dist_scores = torch.clamp(
             (disttotal_scores - distcum_scores) * position_effect, min=0.
@@ -335,7 +340,9 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)
     if zero_pad:
-        pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
+        # pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
+        pad_zero = torch.zeros(bs, head, 1, seqlen)
+
         scores = torch.cat([pad_zero, scores[:, :, 1:, :]], dim=2)
     scores = dropout(scores)
     output = torch.matmul(scores, v)
