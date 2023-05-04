@@ -55,8 +55,11 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
             # y, _ = model(q.long(), r.long())
 
+            # DKVMN+ LOSS  at_s, at_t, at_m, q2diff
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+
             # AKT LOSS
-            y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -75,7 +78,10 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
 
                 model.eval()
 
-                y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+                # AKT LOSS
+                # y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+
+                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
