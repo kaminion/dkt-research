@@ -30,7 +30,7 @@ from models.utils import collate_fn
 # wandb
 import wandb
 
-def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
+def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs, opt, ckpt_path):
     '''
         Args:
             train_loader: the PyTorch DataLoader instance for training
@@ -53,17 +53,16 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            # y, _ = model(q.long(), r.long())
-
+            y, _ = model(q.long(), r.long(), qshft_seqs.long())
+            # y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
             # DKVMN+ LOSS  at_s, at_t, at_m, q2diff
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
             # AKT LOSS
             # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
-
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
-            t = torch.masked_select(r, m)
+            t = torch.masked_select(rshft_seqs, m)
 
             opt.zero_grad()
             loss = binary_cross_entropy(y, t) 
@@ -81,11 +80,54 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
                 # AKT LOSS
                 # y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
-                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+                # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+
+                y, _ = model(q.long(), r.long(), qshft_seqs.long())
+            
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
+                )
+
+                loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+                
+                # print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}")
+                    max_auc = auc
+
+                # aucs.append(auc)
+                loss_means.append(loss_mean)
+
+    # 실제 성능측정
+    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
+    for i in range(1, num_epochs + 1):
+        with torch.no_grad():
+            for data in exp_loader:
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs = data
+
+                model.eval()
+
+                # AKT LOSS
+                # y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+                y, _ = model(q.long(), r.long(), qshft_seqs.long())
+                # y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+
+                # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(r, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -95,17 +137,8 @@ def train_model(model, train_loader, test_loader, num_epochs, opt, ckpt_path):
                 
                 print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
 
-                if auc > max_auc : 
-                    torch.save(
-                        model.state_dict(),
-                        os.path.join(
-                            ckpt_path, "model.ckpt"
-                        )
-                    )
-                    max_auc = auc
-
                 aucs.append(auc)
-                loss_means.append(loss_mean)
+                # loss_means.append(loss_mean)
 
     return aucs, loss_means
 
@@ -196,11 +229,13 @@ def main(model_name, dataset_name, use_wandb):
         return
     
     # 데이터셋 분할
-    train_size = int(len(dataset) * train_ratio) 
-    test_size = len(dataset) - train_size
+    data_size = len(dataset)
+    train_size = int(data_size * train_ratio) 
+    test_size = int(data_size * ((1.0 - train_ratio) / 2.0))
+    exp_size = data_size - train_size - test_size
 
-    train_dataset, test_dataset = random_split(
-        dataset, [train_size, test_size], generator=torch.Generator(device=device)
+    train_dataset, test_dataset, exp_dataset = random_split(
+        dataset, [train_size, test_size, exp_size], generator=torch.Generator(device=device)
     )
 
     # pickle에 얼마만큼 분할했는지 저장
@@ -213,6 +248,10 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "rb"
         ) as f:
             test_dataset.indices = pickle.load(f)
+        with open(
+            os.path.join(dataset.dataset_dir, "exp_indices.pkl"), "rb"
+        ) as f:
+            exp_dataset.indices = pickle.load(f)
     else:
         with open(
             os.path.join(dataset.dataset_dir, "train_indices.pkl"), "wb"
@@ -222,6 +261,10 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "wb"
         ) as f:
             pickle.dump(test_dataset.indices, f)
+        with open(
+            os.path.join(dataset.dataset_dir, "exp_indices.pkl"), "wb"
+        ) as f:
+            pickle.dump(exp_dataset.indices, f)
 
     # Loader에 데이터 적재
     train_loader = DataLoader(
@@ -230,6 +273,10 @@ def main(model_name, dataset_name, use_wandb):
     )
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=True,
+        collate_fn=collate_fn, generator=torch.Generator(device=device)
+    )
+    exp_loader = DataLoader(
+        exp_dataset, batch_size=batch_size, shuffle=True,
         collate_fn=collate_fn, generator=torch.Generator(device=device)
     )
 
@@ -243,7 +290,7 @@ def main(model_name, dataset_name, use_wandb):
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
     aucs, loss_means = \
         train_model(
-            model, train_loader, test_loader, num_epochs, opt, ckpt_path
+            model, train_loader, test_loader, exp_loader, dataset.num_q, num_epochs, opt, ckpt_path
         )
     # DKT나 다른 모델 학습용
     # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)

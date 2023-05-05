@@ -86,6 +86,6 @@ class SAKT(Module):
         F = self.FFN(S)
         F = self.FFN_layer_norm(F + S)
 
-        p = torch.sigmoid(self.pred(F)).squeeze()
+        p = torch.sigmoid(self.pred(F)).squeeze(-1)
 
         return p, attn_weights

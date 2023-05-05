@@ -31,7 +31,7 @@ class DKT(Module):
 
         # Compressive sensing에 의하면 d차원에서의 k-sparse 신호는 모두 원복될 수 있음. (klogd에 변형을 가한 모든 값)
         # 여기서 d차원은 unique exercise이고(M), K-sparse는 원핫인코딩을 거치므로 1-sparse라고 할 수 있음.
-        x = q + self.num_q * r # r텐서를 num_q 만큼 곱해서 확장함
+        x = q + r # r텐서를 num_q 만큼 곱해서 확장함
         h, _ = self.lstm_layer(self.interaction_emb(x))
         y = self.out_layer(h)
         y = self.dropout_layer(y)
@@ -57,7 +57,7 @@ class DKT(Module):
             loss_mean = []
 
             for data in train_loader:
-                q, r, qshift, rshift, m, _, _, _, _ = data
+                q, r, qshift, rshift, m, _, _, _, _, _ = data
 
                 self.train()
                 
@@ -86,7 +86,7 @@ class DKT(Module):
 
             with torch.no_grad():
                 for data in test_loader:
-                    q, r, qshift, rshift, m, _, _, _, _ = data 
+                    q, r, qshift, rshift, m, _, _, _, _, _ = data 
 
                     self.eval()
 
