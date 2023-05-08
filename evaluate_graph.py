@@ -3,7 +3,7 @@ import pickle
 import numpy as np 
 import pandas as pd
 
-model_name = 'dkt'
+model_name = 'akt'
 
 abs_path = f'.{os.path.sep}ckpts{os.path.sep}{model_name}{os.path.sep}'
 path = f'ASSIST2009{os.path.sep}'
