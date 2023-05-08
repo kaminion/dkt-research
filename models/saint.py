@@ -50,6 +50,6 @@ class SAINT(Module):
         )
         R = R.permute(1, 0, 2)
 
-        p = torch.sigmoid(self.pred(R)).squeeze()
+        p = torch.sigmoid(self.pred(R)).squeeze(-1)
 
         return p
