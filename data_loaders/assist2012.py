@@ -86,8 +86,8 @@ class ASSIST2012(Dataset):
         pid_list = np.unique(df["problem_id"].values)
 
         df.loc[df['correct'] == 1, 'correct'] = 1
-        df.loc[df['correct'] == 0, 'correct'] = 0
-        
+        df.loc[df['correct'] != 1, 'correct'] = 0
+
         # map 형태로 스킬이름: index 자료 저장, 유저도 유저명: 인덱스로 저장
         u2idx = {u: idx for idx, u in enumerate(u_list)}
         q2idx = {q: idx for idx, q in enumerate(q_list)}
