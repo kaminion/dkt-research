@@ -88,11 +88,11 @@ class SUBJ_DKVMN(Module):
         x = self.qr2_emb_layer(self.qr_emb_layer(q + self.num_q * r).permute(0, 2, 1))
         batch_size = x.shape[0]
 
-        em_at = torch.relu(self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
                        attention_mask=at_t,
                        token_type_ids=at_m
-                       ).last_hidden_state))
-        em_at = torch.relu(self.at2_emb_layer(em_at.permute(0, 2, 1)))
+                       ).last_hidden_state)
+        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
         # em_at = pad(em_at, (0, 0, 0, x.shape[1] - em_at.shape[1], 0, 0))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
