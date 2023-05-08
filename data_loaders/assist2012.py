@@ -76,8 +76,8 @@ class ASSIST2012(Dataset):
     def preprocess(self):
 
         df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1').dropna(subset=["skill"])\
-            .drop_duplicates(subset=["order_id", "skill"])\
-            .sort_values(by=["order_id"])
+            .drop_duplicates(subset=["problem_log_id", "skill"])\
+            .sort_values(by=["problem_log_id"])
         df['answer_text'] = df['answer_text'].fillna(' ')
 
         # 고유 유저와 고유 스킬리스트만 남김
