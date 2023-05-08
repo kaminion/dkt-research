@@ -53,19 +53,23 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), qshft_seqs.long())
+
+            # SAINT LOSS DKT DKVMN
+            # y, _ = model(q.long(), r.long())
+            # SAKT LOSS
+            # y, _ = model(q.long(), r.long(), qshft_seqs.long())
             # y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
             # DKVMN+ LOSS  at_s, at_t, at_m, q2diff
-            # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
             # AKT LOSS
-            # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            y = torch.masked_select(y, m)
-            t = torch.masked_select(rshft_seqs, m)
-
             opt.zero_grad()
+            # y, akt_loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            y = torch.masked_select(y, m)
+            t = torch.masked_select(r, m)
             loss = binary_cross_entropy(y, t) 
+            # loss += akt_loss 
             loss.backward()
             opt.step()
 
@@ -78,15 +82,18 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 model.eval()
 
                 # AKT LOSS
-                # y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+                # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
-                # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
-
-                y, _ = model(q.long(), r.long(), qshft_seqs.long())
+                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+                
+                # SAINT DKT DKVMN
+                # y, _ = model(q.long(), r.long())
+                # SAKT LOSS
+                # y, _ = model(q.long(), r.long(), qshft_seqs.long())
             
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                t = torch.masked_select(r, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -117,17 +124,20 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs = data
 
                 model.eval()
-
+                # DKT SAINT DKVMN
+                # y, _ = model(q.long(), r.long())
                 # AKT LOSS
-                # y, loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
-                y, _ = model(q.long(), r.long(), qshft_seqs.long())
+                # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+                
+                # SAINT LOSS
+                # y, _ = model(q.long(), r.long(), qshft_seqs.long())
                 # y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
-                # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                t = torch.masked_select(r, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()

@@ -22,7 +22,7 @@ class AKT(nn.Module):
             d_ff: dimension for fully connected net inside the basic block
     '''
     def __init__(self, n_question, n_pid, d_model=256, n_blocks=1,
-                 kq_same=True, dropout=0.05, model_type='akt', final_fc_dim=512, n_heads=8, d_ff=1024, l2=1e-5,
+                 kq_same=True, dropout=0.05, model_type='akt', final_fc_dim=512, n_heads=8, d_ff=1024, l2=1e-4,
                  separate_qa=False
                 ):
         super(AKT, self).__init__()
@@ -206,8 +206,8 @@ class TransformerLayer(nn.Module):
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask
         ).astype('uint8')
-        # src_mask = (torch.from_numpy(nopeek_mask) == 0).cuda()
-        src_mask = (torch.from_numpy(nopeek_mask) == 0)
+        src_mask = (torch.from_numpy(nopeek_mask) == 0).cuda()
+        # src_mask = (torch.from_numpy(nopeek_mask) == 0)
         if mask == 0: # If0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
@@ -321,8 +321,8 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
         disttotal_scores = torch.sum(
             scores_, dim=-1, keepdim=True 
         ) # bs, 8, s1, 1
-        # position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
-        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor) # 1, 1, seqlen, seqlen
+        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
+        # position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor) # 1, 1, seqlen, seqlen
 
         # bs, 8, s1, s1 positive distance
         dist_scores = torch.clamp(
@@ -340,8 +340,8 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     scores.masked_fill_(mask == 0, -1e32)
     scores = F.softmax(scores, dim=-1)
     if zero_pad:
-        # pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
-        pad_zero = torch.zeros(bs, head, 1, seqlen)
+        pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
+        # pad_zero = torch.zeros(bs, head, 1, seqlen)
 
         scores = torch.cat([pad_zero, scores[:, :, 1:, :]], dim=2)
     scores = dropout(scores)

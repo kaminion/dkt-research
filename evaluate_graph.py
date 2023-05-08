@@ -25,9 +25,11 @@ print(len(file))
 div_cnt = int(len(file) / epochs)
 for i in range(0, div_cnt):
     aucs_np.append(np.array(file[i * epochs:i * epochs + epochs]))
-max_values = np.average(np.max(aucs_np, axis=1))
-std = np.std(file)
-print(max_values, std)
+med_values = np.median(aucs_np, axis=1)
+median_AUC = np.max(med_values)
+# print(len(max_values), max_values, maximum_AUC)
+std = np.std(med_values)
+print(len(med_values), median_AUC, std)
 
     # print(len(file) / 52)
 
