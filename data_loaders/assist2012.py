@@ -18,7 +18,7 @@ Q_DIFF_PICKLE = 'q2diff.pkl'
 P_ID_PICKLE = 'pid.pkl'
 P_LIST_PICKLE = "p_list.pkl"
 
-class ASSIST2009(Dataset):
+class ASSIST2012(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
         super().__init__()
 

@@ -12,6 +12,7 @@ from torch.optim import SGD, Adam
 from torch.nn.functional import binary_cross_entropy, pad, one_hot
 from sklearn import metrics 
 from data_loaders.assist2009 import ASSIST2009
+from data_loaders.assist2012 import ASSIST2012
 
 from models.dkt import DKT
 from models.dkvmn import DKVMN
@@ -200,6 +201,9 @@ def main(model_name, dataset_name, use_wandb):
     # 데이터셋 추가 가능
     if dataset_name == "ASSIST2009":
         dataset = ASSIST2009(seq_len)
+    elif dataset_name == "ASSIST2012":
+        dataset = ASSIST2012(seq_len)
+
     if torch.cuda.is_available():
         device = "cuda"
     else:
