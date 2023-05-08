@@ -218,7 +218,7 @@ def main(model_name, dataset_name, use_wandb):
     
     ## 가변 벡터이므로 **
     if model_name == "dkt":
-        model = DKT(dataset.num_q, **model_config).to(device)
+        model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
