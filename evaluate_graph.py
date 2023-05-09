@@ -10,7 +10,7 @@ path = f'ASSIST2009{os.path.sep}'
 file_name = 'aucs.pkl'
 
 # TEST DATA SET 에만 수행하는 것이므로..
-# ASSISTMENT 2009: 52
+# ASSISTMENT 2009: 52, ASSISTMENT 2012: 379
 epochs = 52
 
 # data = pd.read_csv()
