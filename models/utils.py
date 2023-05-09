@@ -125,6 +125,7 @@ def collate_fn(batch, pad_val=-1):
     atshft_seqs = []
     q2diff_seqs = []
     pid_seqs = []
+    pidshft_seqs = []
 
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
@@ -137,6 +138,7 @@ def collate_fn(batch, pad_val=-1):
         rshft_seqs.append(FloatTensor(r_seq[1:]))
         q2diff_seqs.append(FloatTensor(q2diff[:-1]))
         pid_seqs.append(FloatTensor(pid_seq[:-1]))
+        pidshft_seqs.append(FloatTensor(pid_seqs[1:]))
 
     # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
     # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
@@ -158,6 +160,9 @@ def collate_fn(batch, pad_val=-1):
     pid_seqs = pad_sequence(
         pid_seqs, batch_first=True, padding_value=pad_val
     )
+    pidshft_seqs = pad_sequence(
+        pidshft_seqs, batch_first=True, padding_value=pad_val
+    )
 
     # 마스킹 시퀀스 생성 
     # 일반 question 시퀀스: 패딩 밸류와 다른 값들은 모두 1로 처리, 패딩 처리된 값들은 0으로 처리.
@@ -167,9 +172,10 @@ def collate_fn(batch, pad_val=-1):
     mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
 
     # 원본 값의 다음 값이(shift value) 패딩이기만 해도 마스킹 시퀀스에 의해 값이 0로 변함. 아닐경우 원본 시퀀스 데이터를 가짐.
-    q_seqs, r_seqs, qshft_seqs, rshft_seqs, q2diff_seqs, pid_seqs = \
+    q_seqs, r_seqs, qshft_seqs, rshft_seqs, q2diff_seqs, pid_seqs, pidshft_seqs = \
         q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
-        rshft_seqs * mask_seqs, q2diff_seqs * mask_seqs, pid_seqs * mask_seqs
+        rshft_seqs * mask_seqs, q2diff_seqs * mask_seqs, pid_seqs * mask_seqs, \
+        pidshft_seqs * mask_seqs
     
 
     # Word2vec
@@ -205,7 +211,7 @@ def collate_fn(batch, pad_val=-1):
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
     proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs
 
 class SIMSE(nn.Module): 
 

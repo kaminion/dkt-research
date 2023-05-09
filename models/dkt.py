@@ -57,7 +57,7 @@ class DKT(Module):
             loss_mean = []
 
             for data in train_loader:
-                q, r, qshift, rshift, m, _, _, _, _, _ = data
+                q, r, qshift, rshift, m, _, _, _, _, _, pidshift = data
 
                 self.train()
                 
