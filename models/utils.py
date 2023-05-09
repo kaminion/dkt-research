@@ -138,7 +138,7 @@ def collate_fn(batch, pad_val=-1):
         rshft_seqs.append(FloatTensor(r_seq[1:]))
         q2diff_seqs.append(FloatTensor(q2diff[:-1]))
         pid_seqs.append(FloatTensor(pid_seq[:-1]))
-        pidshft_seqs.append(FloatTensor(pid_seqs[1:]))
+        pidshft_seqs.append(FloatTensor(pid_seq[1:]))
 
     # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
     # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
