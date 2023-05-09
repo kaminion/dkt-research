@@ -12,12 +12,12 @@
         "hidden_size": 200
     },
     "dkvmn":{
-        "dim_s": 50,
-        "size_m": 20
+        "dim_s": 100,
+        "size_m": 50
     },
     "dkvmn+":{
-        "dim_s": 50,
-        "size_m": 20
+        "dim_s": 100,
+        "size_m": 50
     },
     "sakt":{
         "n": 100,
@@ -31,8 +31,9 @@
     },
     "saint":{
         "n": 100,
-        "d": 30,
+        "d": 512,
         "num_attn_heads": 5,
+        "num_tr_layers": 4,
         "dropout": 0.6
     },
     "clkt": {
