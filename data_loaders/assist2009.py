@@ -17,6 +17,7 @@ Q_IDX_PICKLE = "q2idx.pkl"
 Q_DIFF_PICKLE = 'q2diff.pkl'
 P_ID_PICKLE = 'pid.pkl'
 P_LIST_PICKLE = "p_list.pkl"
+HINT_LIST_PICKLE = "hint_use.pkl"
 
 class ASSIST2009(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
@@ -47,9 +48,11 @@ class ASSIST2009(Dataset):
                 self.pid_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "rb") as f:
                 self.pid_list = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, HINT_LIST_PICKLE), "rb") as f:
+                self.hint_seqs = pickle.load(f)
         else:
             self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, self.u_list, self.q2idx, \
-                self.q2diff, self.pid_seqs, self.pid_list = self.preprocess()
+                self.q2diff, self.pid_seqs, self.pid_list, self.hint_seqs = self.preprocess()
             
         
         def mapmax(data):
@@ -62,13 +65,13 @@ class ASSIST2009(Dataset):
         self.wordlen = len(max(map(mapmax, self.at_seqs), key=len)) # 최대길이
 
         if seq_len:
-            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs = \
-                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, seq_len)
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, self.hint_seqs = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, self.hint_seqs, seq_len)
 
         self.len = len(self.q_seqs)
     
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.pid_seqs[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.pid_seqs[index], self.hint_seqs[index]
     
     def __len__(self):
         return self.len
@@ -91,11 +94,16 @@ class ASSIST2009(Dataset):
         d2idx = {}
         p2idx = {pid: idx for idx, pid in enumerate(pid_list)}
 
+        # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
+        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
+        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
+
         q_seqs = []
         r_seqs = []
         at_seqs = []
         q2diff = []
         pid_seqs = []
+        hint_seqs = []
 
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
@@ -117,12 +125,15 @@ class ASSIST2009(Dataset):
             # 유저가 푼 문제들의 정오답 비율을 구함
             d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
 
+            hint_seq = df_u['hint_count'].values
+
             # 해당 리스트들을 다시 리스트에 저장
             q_seqs.append(q_seq)
             r_seqs.append(r_seq)
             at_seqs.append(at_seq)
             q2diff.append(d_seq)
             pid_seqs.append(pid_seq)
+            hint_seqs.append(hint_seq)
 
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
@@ -142,5 +153,7 @@ class ASSIST2009(Dataset):
             pickle.dump(pid_seqs, f)
         with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "wb") as f:
             pickle.dump(pid_list, f)
+        with open(os.path.join(self.dataset_dir, HINT_LIST_PICKLE), "wb") as f:
+            pickle.dump(hint_seqs, f)
 
-        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs, pid_list
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs, pid_list, hint_seqs

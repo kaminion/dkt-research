@@ -47,19 +47,20 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
     for i in range(0, num_epochs):
         loss_mean = []
+        
 
         for data in train_loader:
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift = data
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
 
             # SAINT LOSS DKT DKVMN
-            y = model(pid_seqs.long(), r.long())
+            y = model(q.long(), r.long())
             # SAKT LOSS
             # y, _ = model(q.long(), r.long(), qshft_seqs.long())
-            y = (y * one_hot(pidshift.long(), num_q)).sum(-1)
+            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
             # DKVMN+ LOSS  at_s, at_t, at_m, q2diff
             # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
@@ -68,7 +69,15 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             opt.zero_grad()
             # y, akt_loss = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
             y = torch.masked_select(y, m)
-            t = torch.masked_select(r, m)
+            t = torch.masked_select(rshft_seqs, m)
+            h = torch.masked_select(hint_seqs, m)
+
+            # fpr, tpr, threshold = metrics.roc_curve(
+            #     y_true=t.numpy(), y_score=y.numpy()
+            # )
+
+            # print(f"FPR: {fpr}, TPR: {tpr}")
+
             loss = binary_cross_entropy(y, t) 
             # loss += akt_loss 
             loss.backward()
@@ -88,14 +97,14 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 # y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
                 
                 # SAINT DKT DKVMN
-                y = model(pid_seqs.long(), r.long())
+                y = model(q.long(), r.long())
                 # SAKT LOSS
                 # y, _ = model(q.long(), r.long(), qshft_seqs.long())
-                y = (y * one_hot(pidshift.long(), num_q)).sum(-1)
+                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(r, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -127,10 +136,10 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
                 model.eval()
                 # DKT SAINT DKVMN
-                y = model(pid_seqs.long(), r.long())
+                y = model(q.long(), r.long())
                 # AKT LOSS
                 # y, _ = model(q.long(), (q + r).long(), r.long(), pid_seqs.long()) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
-                y = (y * one_hot(pidshift.long(), num_q)).sum(-1)
+                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
                 # SAINT LOSS
                 # y, _ = model(q.long(), r.long(), qshft_seqs.long())
@@ -140,7 +149,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(r, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -220,7 +229,7 @@ def main(model_name, dataset_name, use_wandb):
     
     ## 가변 벡터이므로 **
     if model_name == "dkt":
-        model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
+        model = DKT(dataset.num_q, **model_config).to(device)
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
