@@ -65,7 +65,7 @@ class ASSIST2012(Dataset):
         self.wordlen = len(max(map(mapmax, self.at_seqs), key=len)) # 최대길이
 
         if seq_len:
-            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs = \
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, self.hint_seqs = \
                 match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.pid_seqs, self.hint_seqs, seq_len)
 
         self.len = len(self.q_seqs)
