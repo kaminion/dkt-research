@@ -107,7 +107,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                     y_true=t.numpy(), y_score=y.numpy()
                 )
 
-                _, eq_odd = equalized_odd(y, t, h)
+                _, eq_odd = equalized_odd(y, t, q)
 
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
@@ -152,7 +152,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-                _, eq_odd = equalized_odd(y, t, h)
+                _, eq_odd = equalized_odd(y, t, q)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
