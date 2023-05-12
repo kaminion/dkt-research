@@ -106,6 +106,9 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
                 )
+                acc = metrics.accuracy_score(
+                    y_true=t.numpy(), y_score=y.numpy()
+                )
 
                 _, eq_odd = equalized_odd(y, t, h)
 
@@ -121,7 +124,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, eq_odd: {eq_odd}")
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, max ACC: {acc}, eq_odd: {eq_odd}")
                     max_auc = auc
 
                 # aucs.append(auc)
@@ -157,10 +160,13 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
                 )
-
+                acc = metrics.accuracy_score(
+                    y_true=t.numpy(), y_score=y.numpy()
+                )
+                
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, max ACC: {acc}, eq_odd: {eq_odd}")
 
                 aucs.append(auc)
                 # loss_means.append(loss_mean)
