@@ -95,8 +95,8 @@ class ASSIST2009(Dataset):
         p2idx = {pid: idx for idx, pid in enumerate(pid_list)}
 
         # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
-        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
-        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
+        # df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
+        # df.loc[df['hint_count'] < 1, 'hint_count'] = 0
 
         q_seqs = []
         r_seqs = []
