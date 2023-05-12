@@ -72,13 +72,9 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             t = torch.masked_select(rshft_seqs, m)
             h = torch.masked_select(hint_seqs, m)
 
-            # fpr, tpr, threshold = metrics.roc_curve(
-            #     y_true=t.numpy(), y_score=y.numpy()
-            # )
+            regularization, eq_odd = equalized_odd(y, t, h)
 
-            # print(f"FPR: {fpr}, TPR: {tpr}")
-
-            loss = binary_cross_entropy(y, t) + equalized_odd(y, t, h)
+            loss = binary_cross_entropy(y, t) + regularization
             # loss += akt_loss 
             loss.backward()
             opt.step()
@@ -87,7 +83,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
         with torch.no_grad():
             for data in test_loader:
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift = data
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
 
@@ -105,10 +101,14 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
                 )
+
+                _, eq_odd = equalized_odd(y, t, h)
+
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
@@ -121,7 +121,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}")
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, eq_odd: {eq_odd}")
                     max_auc = auc
 
                 # aucs.append(auc)
@@ -132,7 +132,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
     for i in range(1, num_epochs + 1):
         with torch.no_grad():
             for data in exp_loader:
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift = data
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
                 # DKT SAINT DKVMN
@@ -150,6 +150,9 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+                _, eq_odd = equalized_odd(y, t, h)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -157,7 +160,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
 
                 aucs.append(auc)
                 # loss_means.append(loss_mean)
