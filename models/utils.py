@@ -251,8 +251,8 @@ def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
         fpr.append(fpr_group)
         tpr.append(tpr_group)
 
-    fpr_diff = torch.max(fpr) - torch.min(fpr)
-    tpr_diff = torch.max(tpr) - torch.min(tpr)
+    fpr_diff = torch.max(torch.tensor(fpr)) - torch.min(torch.tensor(fpr))
+    tpr_diff = torch.max(torch.tensor(tpr)) - torch.min(torch.tensor(tpr))
 
     regularization = lambda_s * (fpr_diff + tpr_diff)
 

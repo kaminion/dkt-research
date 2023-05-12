@@ -4,7 +4,6 @@ import torch
 from torch import nn
 from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss
 from sklearn import metrics
-from models.utils import SIMSE, DiffLoss
 """
 MEKT !
 
