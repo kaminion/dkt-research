@@ -107,7 +107,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                     y_true=t.numpy(), y_score=y.numpy()
                 )
                 acc = metrics.accuracy_score(
-                    y_true=t.numpy(), y_score=y.numpy()
+                    y_true=t.numpy(), y_pred=y.numpy()
                 )
 
                 _, eq_odd = equalized_odd(y, t, h)
@@ -161,9 +161,9 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                     y_true=t.numpy(), y_score=y.numpy()
                 )
                 acc = metrics.accuracy_score(
-                    y_true=t.numpy(), y_score=y.numpy()
+                    y_true=t.numpy(), y_pred=y.numpy()
                 )
-                
+
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
                 print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, max ACC: {acc}, eq_odd: {eq_odd}")
