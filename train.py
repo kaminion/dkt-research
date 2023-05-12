@@ -72,7 +72,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             t = torch.masked_select(rshft_seqs, m)
             h = torch.masked_select(hint_seqs, m)
 
-            regularization, eq_odd = equalized_odd(y, t, h)
+            regularization, eq_odd = equalized_odd(y, t, q)
 
             loss = binary_cross_entropy(y, t) + regularization
             # loss += akt_loss 
