@@ -125,7 +125,7 @@ class ASSIST2009(Dataset):
             # 유저가 푼 문제들의 정오답 비율을 구함
             d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
 
-            hint_seq = df_u['hint_count'].values
+            hint_seq = df_u['attempt_count'].values
 
             # 해당 리스트들을 다시 리스트에 저장
             q_seqs.append(q_seq)
