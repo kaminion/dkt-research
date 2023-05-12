@@ -86,7 +86,7 @@ class DKT(Module):
 
             with torch.no_grad():
                 for data in test_loader:
-                    q, r, qshift, rshift, m, _, _, _, _, _ = data 
+                    q, r, qshift, rshift, m, _, _, _, _, _, pidshift = data 
 
                     self.eval()
 

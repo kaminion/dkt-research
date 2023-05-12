@@ -228,43 +228,32 @@ def collate_fn(batch, pad_val=-1):
 
     return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs, hint_seqs
 
-class SIMSE(nn.Module): 
+    
+def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
+    """
+    
+    """
 
-    def __init__(self):
-        super(SIMSE, self).__init__()
+    # unique한 속성만 남김
+    sensitive_group = torch.unique(sensitive)
 
-    def forward(self, pred, real):
-        diffs = torch.add(real, - pred)
-        n = torch.numel(diffs.data)
-        simse = torch.sum(diffs).pow(2) / (n ** 2)
+    fpr, tpr = [], []
+    for group in sensitive_group:
+        group_mask = (sensitive == group) # 마스킹
+        true_positives = (y_pred[group_mask] >= 0.5).float().sum()
+        false_positives = (y_pred[group_mask] < 0.5).float().sum()
+        true_negatives = (y_pred[~group_mask] < 0.5).float().sum()
+        false_negatives = (y_pred[~group_mask] >= 0.5).float().sum()
 
-        return simse
+        fpr_group = false_positives / (false_positives + true_negatives)
+        tpr_group = true_positives / (true_positives + false_negatives)
 
+        fpr.append(fpr_group)
+        tpr.append(tpr_group)
 
-class DiffLoss(nn.Module):
+    fpr_diff = torch.max(fpr) - torch.min(fpr)
+    tpr_diff = torch.max(tpr) - torch.min(tpr)
 
-    def __init__(self):
-        super(DiffLoss, self).__init__()
+    regularization = lambda_s * (fpr_diff + tpr_diff)
 
-    def forward(self, input1, input2):
-
-        batch_size = input1.size(0)
-        input1 = input1.view(batch_size, -1)
-        input2 = input2.view(batch_size, -1)
-
-        # Zero mean
-        input1_mean = torch.mean(input1, dim=0, keepdims=True)
-        input2_mean = torch.mean(input2, dim=0, keepdims=True)
-        input1 = input1 - input1_mean
-        input2 = input2 - input2_mean
-
-        input1_l2_norm = torch.norm(input1, p=2, dim=1, keepdim=True).detach()
-        input1_l2 = input1.div(input1_l2_norm.expand_as(input1) + 1e-6)
-        
-
-        input2_l2_norm = torch.norm(input2, p=2, dim=1, keepdim=True).detach()
-        input2_l2 = input2.div(input2_l2_norm.expand_as(input2) + 1e-6)
-
-        diff_loss = torch.mean((input1_l2.t().mm(input2_l2)).pow(2))
-
-        return diff_loss
+    return regularization

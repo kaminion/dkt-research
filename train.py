@@ -26,7 +26,7 @@ from models.qakt import QAKT
 from models.akt import AKT
 
 
-from models.utils import collate_fn
+from models.utils import collate_fn, equalized_odd
 
 # wandb
 import wandb
@@ -77,23 +77,8 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             # )
 
             # print(f"FPR: {fpr}, TPR: {tpr}")
-            
-            # 힌트 사용한 거만 표시 
-            y_h = torch.masked_select(y, h).detach().cpu()
-            t_h = torch.masked_select(t, h).detach().cpu()
-            h_fpr, h_tpr, threshold = metrics.roc_curve(
-                y_true=t_h.numpy(), y_score=y_h.numpy()
-            )
 
-            # 힌트 사용안한 것들 
-            op_h = h == False
-            y_n = torch.masked_select(y, op_h).detach().cpu()
-            t_n = torch.masked_select(y, op_h).detach().cpu()
-            n_fpr, n_tpr, threshold = metrics.roc_curve(
-                y_true=t_n.numpy(), y_score=y_n.numpy()
-            )
-
-            loss = binary_cross_entropy(y, t) + (h_fpr - n_fpr) + (h_tpr - n_tpr)
+            loss = binary_cross_entropy(y, t) + equalized_odd(y, t, h)
             # loss += akt_loss 
             loss.backward()
             opt.step()
