@@ -77,8 +77,23 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             # )
 
             # print(f"FPR: {fpr}, TPR: {tpr}")
+            
+            # 힌트 사용한 거만 표시 
+            y_h = torch.masked_select(y, h).detach().cpu()
+            t_h = torch.masked_select(t, h).detach().cpu()
+            h_fpr, h_tpr, threshold = metrics.roc_curve(
+                y_true=t_h.numpy(), y_score=y_h.numpy()
+            )
 
-            loss = binary_cross_entropy(y, t) 
+            # 힌트 사용안한 것들 
+            op_h = h == False
+            y_n = torch.masked_select(y, op_h).detach().cpu()
+            t_n = torch.masked_select(y, op_h).detach().cpu()
+            n_fpr, n_tpr, threshold = metrics.roc_curve(
+                y_true=t_n.numpy(), y_score=y_n.numpy()
+            )
+
+            loss = binary_cross_entropy(y, t) + (h_fpr - n_fpr) + (h_tpr - n_tpr)
             # loss += akt_loss 
             loss.backward()
             opt.step()
