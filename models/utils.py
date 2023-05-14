@@ -258,3 +258,37 @@ def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
     regularization = lambda_s * eq_odd
 
     return regularization, eq_odd
+
+def equal_opportunity(y_pred, y_true, sensitive):
+    """
+    
+    """
+
+    # unique한 속성만 남김
+    sensitive_group = torch.unique(sensitive)
+    tpr_diff = 0
+
+    tpr_group = []
+    for group in sensitive_group:
+        group_mask = (sensitive == group) # 마스킹
+        true_positives = (y_pred[group_mask] > 0).float().sum()  
+        false_negatives = (y_pred[~group_mask] > 0).float().sum()   
+
+        tpr_group.append(true_positives / (true_positives + false_negatives))
+
+    length = len(tpr_group)
+    for i in range(0, length):
+        now_sensit = tpr_group[i]
+
+        if i == 0:
+            next_sensit = tpr_group[i + 1]
+            tpr_diff =  torch.abs(torch.tensor(now_sensit) - torch.tensor(next_sensit))
+        elif length == (i + 1):
+            break
+        else: 
+            tpr_diff = torch.abs(tpr_diff - torch.tensor(next_sensit))
+    tpr_group = torch.tensor(tpr_group)
+    eq_opp = tpr_group.mean()
+    regularization = tpr_diff
+
+    return regularization, eq_opp
