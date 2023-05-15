@@ -14,6 +14,7 @@ from sklearn import metrics
 from data_loaders.assist2009 import ASSIST2009
 from data_loaders.assist2012 import ASSIST2012
 
+# 모델 추가
 from models.dkt import DKT
 from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
@@ -24,6 +25,10 @@ from models.mekt import MEKT
 from models.dirt import DeepIRT
 from models.qakt import QAKT
 from models.akt import AKT
+
+# 모델에 따른 train
+from models.dkt import dkt_train
+
 
 
 from models.utils import collate_fn, equalized_odd
@@ -231,8 +236,10 @@ def main(model_name, dataset_name, use_wandb):
 
     
     ## 가변 벡터이므로 **
+    train_model = None
     if model_name == "dkt":
         model = DKT(dataset.num_q, **model_config).to(device)
+        train_model = dkt_train
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
