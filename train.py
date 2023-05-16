@@ -31,7 +31,6 @@ from models.dkt import dkt_train
 
 
 
-from models.utils import collate_fn, equalized_odd
 
 # wandb
 import wandb
@@ -77,9 +76,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
             t = torch.masked_select(rshft_seqs, m)
             h = torch.masked_select(hint_seqs, m)
 
-            regularization, eq_odd = equalized_odd(y, t, q)
-
-            loss = binary_cross_entropy(y, t) + regularization
+            loss = binary_cross_entropy(y, t) 
             # loss += akt_loss 
             loss.backward()
             opt.step()
@@ -112,9 +109,6 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                     y_true=t.numpy(), y_score=y.numpy()
                 )
 
-                _, eq_odd = equalized_odd(y, t, q)
-
-
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
                 # print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
@@ -126,7 +120,7 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, eq_odd: {eq_odd}")
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}")
                     max_auc = auc
 
                 # aucs.append(auc)
@@ -157,15 +151,13 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-                _, eq_odd = equalized_odd(y, t, q)
-
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
                 )
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}")
 
                 aucs.append(auc)
                 # loss_means.append(loss_mean)

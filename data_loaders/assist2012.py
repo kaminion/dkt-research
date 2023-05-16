@@ -91,6 +91,10 @@ class ASSIST2012(Dataset):
         df.loc[df['correct'] == 1, 'correct'] = 1
         df.loc[df['correct'] != 1, 'correct'] = 0
 
+        # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
+        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
+        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
+
         # map 형태로 스킬이름: index 자료 저장, 유저도 유저명: 인덱스로 저장
         u2idx = {u: idx for idx, u in enumerate(u_list)}
         q2idx = {q: idx for idx, q in enumerate(q_list)}
