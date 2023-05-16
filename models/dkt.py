@@ -4,7 +4,7 @@ import torch
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout
 from torch.nn.functional import one_hot, binary_cross_entropy
 from sklearn import metrics
-from models.utils import collate_fn, equalized_odd
+from models.utils import equalized_odd
 
 
 class DKT(Module):

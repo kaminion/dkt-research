@@ -29,6 +29,7 @@ from models.akt import AKT
 # 모델에 따른 train
 from models.dkt import dkt_train
 
+from models.utils import collate_fn
 
 
 
