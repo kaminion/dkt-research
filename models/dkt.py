@@ -71,7 +71,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
             y = torch.masked_select(y, m)
             t = torch.masked_select(rshft_seqs, m)
 
-            loss = binary_cross_entropy(y, t) + regularization
+            loss = binary_cross_entropy(y, t) 
             loss.backward()
             opt.step()
 
@@ -103,7 +103,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, eq_odd: {eq_odd}")
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}")
                     max_auc = auc
 
                 loss_means.append(loss_mean)
@@ -129,7 +129,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}")
 
                 aucs.append(auc)
 
