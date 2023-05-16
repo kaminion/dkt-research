@@ -53,6 +53,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
     '''
     aucs = []
     loss_means = []  
+    eq_odds = []
 
     max_auc = 0
 
@@ -144,5 +145,6 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                 print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
 
                 aucs.append(auc)
+                eq_odds.append(eq_odd)
 
-    return aucs, loss_means
+    return aucs, loss_means, eq_odds
