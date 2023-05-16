@@ -72,9 +72,11 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
             opt.zero_grad()
             y = torch.masked_select(y, m)
             t = torch.masked_select(rshft_seqs, m)
-            regularization, eq_odd = equalized_odd(y, t, q)
+            h = torch.masked_select(hint_seqs, m)
 
-            loss = binary_cross_entropy(y, t) + regularization
+            regularization, eq_odd = equalized_odd(y, t, h)
+
+            loss = binary_cross_entropy(y, t) 
             loss.backward()
             opt.step()
 
@@ -92,7 +94,9 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
-                _, eq_odd = equalized_odd(y, t, q)
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+                _, eq_odd = equalized_odd(y, t, h)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -122,12 +126,14 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                 model.eval()
                 y = model(q.long(), r.long())
                 y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
-                _, eq_odd = equalized_odd(y, t, q)
 
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+                _, eq_odd = equalized_odd(y, t, h)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()

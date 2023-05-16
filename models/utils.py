@@ -238,12 +238,14 @@ def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
     sensitive_group = torch.unique(sensitive)
 
     fpr, tpr = [], []
+
     for group in sensitive_group:
         group_mask = (sensitive == group) # 마스킹
-        true_positives = (y_pred[group_mask] >= 0.5).float().sum()
-        false_positives = (y_pred[group_mask] < 0.5).float().sum()
-        true_negatives = (y_pred[~group_mask] < 0.5).float().sum()
-        false_negatives = (y_pred[~group_mask] >= 0.5).float().sum()
+
+        true_positives = (y_pred[group_mask] >= 0.5).float().sum() # 모델이 양성으로 예측한 경우, 실제 값도 양성
+        false_positives = (y_pred[group_mask] < 0.5).float().sum() # 모델이 음성으로 양성으로 예측한 경우, 실제 값은 음성
+        true_negatives = (y_pred[~group_mask] < 0.5).float().sum() # 모델이 음성으로 예측한 경우, 실제 값은 음성
+        false_negatives = (y_pred[~group_mask] >= 0.5).float().sum() # 모델이 음성으로 예측한 경우, 실제 값은 양성
 
         fpr_group = false_positives / (false_positives + true_negatives)
         tpr_group = true_positives / (true_positives + false_negatives)
