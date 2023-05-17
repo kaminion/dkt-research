@@ -3,11 +3,11 @@ import pickle
 import numpy as np 
 import pandas as pd
 
-model_name = 'akt'
+model_name = 'dkt'
 
 abs_path = f'.{os.path.sep}ckpts{os.path.sep}{model_name}{os.path.sep}'
 path = f'ASSIST2009{os.path.sep}'
-file_name = 'aucs.pkl'
+file_name = 'eq_odds.pkl'
 
 # TEST DATA SET 에만 수행하는 것이므로..
 # ASSISTMENT 2009: 52, ASSISTMENT 2012: 379
@@ -24,7 +24,7 @@ with open(full_path, "rb") as f:
 print(len(file))
 div_cnt = int(len(file) / epochs)
 for i in range(0, div_cnt):
-    aucs_np.append(np.array(file[i * epochs:i * epochs + epochs]))
+    aucs_np.append(file[i * epochs:i * epochs + epochs])
 med_values = np.median(aucs_np, axis=1)
 median_AUC = np.max(med_values)
 # print(len(max_values), max_values, maximum_AUC)

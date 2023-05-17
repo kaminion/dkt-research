@@ -10,6 +10,7 @@ else:
     from torch import FloatTensor, CharTensor, LongTensor
 
 from transformers import BertTokenizer
+from sklearn import metrics
 
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
@@ -263,6 +264,29 @@ def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
     regularization = lambda_s * eq_odd
 
     return regularization, eq_odd
+
+def calculate_dis_impact(y_pred, y_true, sensitive):
+
+    _ = None
+
+    sensitive_group = torch.unique(sensitive)
+
+    predictive_parity_scores = []
+
+    for group in sensitive_group:
+        group_indices = sensitive == group
+        group_y_true = y_true[group_indices]
+        group_y_pred = y_pred[group_indices]
+
+        group_positive_prob = torch.mean(group_y_pred[group_y_true == 1])
+
+        group_diff = torch.abs(group_positive_prob - torch.mean(y_pred))
+
+        predictive_parity_scores.append(group_diff)
+
+    predictive_parity_score = torch.mean(torch.tensor(predictive_parity_scores))
+
+    return _, predictive_parity_score
 
 def equal_opportunity(y_pred, y_true, sensitive):
     """

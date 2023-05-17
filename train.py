@@ -20,7 +20,7 @@ from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
 from models.sakt import SAKT
 from models.saint import SAINT
-from models.clkt import CLKT
+from models.auto import AUTO
 from models.mekt import MEKT
 from models.dirt import DeepIRT
 from models.qakt import QAKT
@@ -28,6 +28,7 @@ from models.akt import AKT
 
 # 모델에 따른 train
 from models.dkt import dkt_train
+from models.auto import auto_train
 
 from models.utils import collate_fn
 
@@ -243,8 +244,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
-    elif model_name == "clkt":
-        model = CLKT(dataset.num_q, **model_config).to(device)
+    elif model_name == "auto":
+        model = torch.nn.DataParallel(AUTO(dataset.num_q, **model_config)).to(device)
     elif model_name == "mekt":
         model = MEKT(dataset.num_q, **model_config).to(device)
     elif model_name == "dirt":
@@ -316,7 +317,7 @@ def main(model_name, dataset_name, use_wandb):
     opt.lr_scheduler = lr_scheduler
 
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-    aucs, loss_means, eq_odds = \
+    aucs, loss_means, disparate_impacts = \
         train_model(
             model, train_loader, test_loader, exp_loader, dataset.num_q, num_epochs, opt, ckpt_path
         )
@@ -327,8 +328,8 @@ def main(model_name, dataset_name, use_wandb):
         pickle.dump(aucs, f)
     with open(os.path.join(ckpt_path, "loss_means.pkl"), "wb") as f:
         pickle.dump(loss_means, f)
-    with open(os.path.join(ckpt_path, "eq_odds.pkl"), "wb") as f:
-        pickle.dump(eq_odds, f)
+    with open(os.path.join(ckpt_path, "disparate_impacts.pkl"), "wb") as f:
+        pickle.dump(disparate_impacts, f)
 
 # program main entry point
 if __name__ == "__main__":

@@ -2,9 +2,10 @@ import os
 import numpy as np
 import torch
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout
+from models.emb import STFTEmbedding
 from torch.nn.functional import one_hot, binary_cross_entropy
 from sklearn import metrics
-from models.utils import equalized_odd
+from models.utils import calculate_dis_impact
 
 
 class DKT(Module):
@@ -53,7 +54,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
     '''
     aucs = []
     loss_means = []  
-    eq_odds = []
+    disparate_impacts = []
 
     max_auc = 0
 
@@ -75,7 +76,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
             t = torch.masked_select(rshft_seqs, m)
             h = torch.masked_select(hint_seqs, m)
 
-            regularization, eq_odd = equalized_odd(y, t, h)
+            regularization, dis_impact = calculate_dis_impact(y, t, h)
 
             loss = binary_cross_entropy(y, t) 
             loss.backward()
@@ -97,7 +98,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-                _, eq_odd = equalized_odd(y, t, h)
+                non_roc, sen_roc = calculate_dis_impact(y, t, h)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -112,7 +113,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, eq_odd: {eq_odd}")
+                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}, non: {non_roc}, sen: {sen_roc}")
                     max_auc = auc
 
                 loss_means.append(loss_mean)
@@ -134,7 +135,7 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
                 t = torch.masked_select(rshft_seqs, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-                _, eq_odd = equalized_odd(y, t, h)
+                _, dis_impact = calculate_dis_impact(y, t, h)
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -142,9 +143,9 @@ def dkt_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, o
 
                 loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
                 
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, eq_odd: {eq_odd}")
+                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}, dis_impact: {dis_impact}")
 
                 aucs.append(auc)
-                eq_odds.append(eq_odd)
+                disparate_impacts.append(dis_impact.detach().cpu())
 
-    return aucs, loss_means, eq_odds
+    return aucs, loss_means, disparate_impacts
