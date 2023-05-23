@@ -36,7 +36,8 @@
         "num_tr_layers": 4,
         "dropout": 0.6
     },
-    "clkt": {
+    "auto": {
+        "seq_len": 100,
         "emb_size": 100,
         "hidden_size": 100
     },
