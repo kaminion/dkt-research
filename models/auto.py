@@ -150,7 +150,7 @@ class LSTMAE(nn.Module):
         self.encoder = nn.LSTM(self.emb_size, self.hidden_size, self.num_layers, batch_first=True, dropout=self.dropout)
         
         ### For Decoding
-        self.decoder = nn.LSTM(self.emb_size, self.hidden_size, self.num_layers, batch_first=True, dropout=self.dropout)
+        self.decoder = nn.LSTM(self.emb_size, self.hidden_size, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, self.output_size)
         
         # self.criterion = nn.MSELoss()
@@ -215,18 +215,18 @@ class AUTO(nn.Module):
         ##########################################        
         self.dEncoder = nn.Sequential(
             nn.Dropout(self.dropout),
-            nn.Linear(self.hidden_size * 2 + num_layers, int(self.hidden_size)),
-            nn.ReLU(),
-            nn.Linear(int(self.hidden_size), int(self.hidden_size / 2)),
+            nn.Linear(self.hidden_size, int(self.hidden_size / 2)),
             nn.ReLU(),
             nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)),
+            nn.ReLU(),
+            nn.Linear(int(self.hidden_size / 4), int(self.hidden_size / 6)),
         )
         self.dDecoder = nn.Sequential(
+            nn.Linear(int(self.hidden_size / 6), int(self.hidden_size / 4)),
+            nn.ReLU(),
             nn.Linear(int(self.hidden_size / 4), int(self.hidden_size / 2)),
             nn.ReLU(),
-            nn.Linear(int(self.hidden_size / 2), int(self.hidden_size)),
-            nn.ReLU(),
-            nn.Linear(int(self.hidden_size), self.hidden_size * 2 + num_layers),
+            nn.Linear(int(self.hidden_size / 2), self.hidden_size)
         )
         
         
@@ -239,9 +239,7 @@ class AUTO(nn.Module):
             nn.ReLU(),
             nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)),
             nn.ReLU(),
-            nn.Linear(int(self.hidden_size / 4), int(self.hidden_size / 6)),
-            nn.ReLU(),
-            nn.Linear(int(self.hidden_size / 6), 1),
+            nn.Linear(int(self.hidden_size / 4), 1),
             nn.Sigmoid()
         )
         
@@ -293,15 +291,15 @@ class AUTO(nn.Module):
         ##########################################
         # DAE
         ##########################################
-        hidden_d = self.dEncoder(fusion)
+        hidden_d = self.dEncoder(x.float())
         pred_d = self.dDecoder(hidden_d)
                                         
         ##########################################
         # Prediction
         ##########################################
-        y = self.ffn(pred_d).squeeze(-1)
+        y = self.ffn(fusion).squeeze(-1)
 
-        return y, cnn_x.float(), pred_conv.float(), x.float(), pred_lstm.float(), fusion.float(), pred_d.float()
+        return y, cnn_x.float(), pred_conv.float(), x.float(), pred_lstm.float(), None, pred_d.float()
     
 def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, opt, ckpt_path):
     '''
@@ -336,7 +334,8 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
             loss = 0.7 * binary_cross_entropy(y, t) + \
                 0.1 * mse_loss(cnn_x, pred_conv) + \
                 0.1 * mse_loss(x, pred_lstm) + \
-                0.1 * mse_loss(fusion, pred_d)
+                0.1 * mse_loss(x, pred_d)
+                
             # loss.requires_grad_(True)
             loss.backward()
             opt.step()
