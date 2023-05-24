@@ -308,7 +308,7 @@ def main(model_name, dataset_name, use_wandb):
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
     aucs, loss_means = \
         train_model(
-            model, train_loader, test_loader, dataset.num_q, num_epochs, opt, ckpt_path
+            model, train_dataset, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
         )
     # DKT나 다른 모델 학습용
     # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)

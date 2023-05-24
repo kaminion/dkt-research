@@ -3,9 +3,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
+from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss, softmax
 from sklearn import metrics
+from sklearn.model_selection import KFold
+
+from models.utils import collate_fn
 
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_size, hidden_size, kernel_size, bias=True):
@@ -301,7 +305,7 @@ class AUTO(nn.Module):
 
         return y, cnn_x.float(), pred_conv.float(), x.float(), pred_lstm.float(), None, pred_d.float()
     
-def auto_train(model, train_loader, test_loader, num_q, num_epochs, opt, ckpt_path):
+def auto_train(model, train_dataset, test_loader, num_q, num_epochs, batch_size, opt, ckpt_path):
     '''
         Args:
             train_loader: the PyTorch DataLoader instance for training
@@ -314,36 +318,44 @@ def auto_train(model, train_loader, test_loader, num_q, num_epochs, opt, ckpt_pa
     loss_means = []  
 
     max_auc = 0
-
-    for i in range(0, num_epochs):
-        loss_mean = []
+    kfold = KFold(n_splits=5, shuffle=True)
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(train_dataset)):
+        train_subsampler = SubsetRandomSampler(train_idx)
+        val_subsampler = SubsetRandomSampler(val_idx)
         
+        # sampler 이용해서 DataLoader 정의
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler, collate_fn=collate_fn)
+        val_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler, collate_fn=collate_fn)
+        
+        for i in range(0, num_epochs):
+            loss_mean = []
+            
 
-        for data in train_loader:
-            # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-            model.train()
+            for data in train_loader:
+                # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+                model.train()
 
-            # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
+                # 현재까지의 입력을 받은 뒤 다음 문제 예측
+                y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
 
-            opt.zero_grad()
-            y = torch.masked_select(y, m)
-            t = torch.masked_select(r, m)
+                opt.zero_grad()
+                y = torch.masked_select(y, m)
+                t = torch.masked_select(r, m)
 
-            loss = 0.7 * binary_cross_entropy(y, t) + \
-                0.1 * mse_loss(cnn_x, pred_conv) + \
-                0.1 * mse_loss(x, pred_lstm) + \
-                0.1 * mse_loss(x, pred_d)
-                
-            # loss.requires_grad_(True)
-            loss.backward()
-            opt.step()
+                loss = 0.7 * binary_cross_entropy(y, t) + \
+                    0.1 * mse_loss(cnn_x, pred_conv) + \
+                    0.1 * mse_loss(x, pred_lstm) + \
+                    0.1 * mse_loss(x, pred_d)
+                    
+                # loss.requires_grad_(True)
+                loss.backward()
+                opt.step()
 
-            loss_mean.append(loss.detach().cpu().numpy())
+                loss_mean.append(loss.detach().cpu().numpy())
 
         with torch.no_grad():
-            for data in train_loader:
+            for data in val_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
@@ -367,33 +379,32 @@ def auto_train(model, train_loader, test_loader, num_q, num_epochs, opt, ckpt_pa
                             ckpt_path, "model.ckpt"
                         )
                     )
-                    print(f"Epoch {i}, previous AUC: {max_auc}, max AUC: {auc}")
+                    print(f"Fold:{fold}, previous AUC: {max_auc}, max AUC: {auc}")
                     max_auc = auc
 
                 loss_means.append(loss_mean)
 
     # 실제 성능측정
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
-    for i in range(1, num_epochs + 1):
-        with torch.no_grad():
-            for data in test_loader:
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+    with torch.no_grad():
+        for data in test_loader:
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                model.eval()
-                y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
+            model.eval()
+            y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
 
-                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(r, m).detach().cpu()
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(r, m).detach().cpu()
 
-                auc = metrics.roc_auc_score(
-                    y_true=t.numpy(), y_score=y.numpy()
-                )
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
 
-                loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
-                
-                print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}")
+            loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+            
+            print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean}")
 
-                aucs.append(auc)
+            aucs.append(auc)
 
     return aucs, loss_means
