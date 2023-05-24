@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss
+from torch.nn.functional import one_hot, binary_cross_entropy, mse_loss, softmax
 from sklearn import metrics
 
 class ConvLSTMCell(nn.Module):
@@ -160,7 +160,7 @@ class LSTMAE(nn.Module):
         output, (decoder_hidden_state, decoder_cell_state) = self.decoder(x, (hidden_state, cell_state)) # Teacher Forcing
         pred = self.fc(output)
         
-        return (hidden_state, cell_state), pred
+        return (hidden_state, cell_state), output
 
 
 class AUTO(nn.Module):
@@ -183,6 +183,7 @@ class AUTO(nn.Module):
         # Convolutional Auto Encoder
         ##########################################
         self.convEncoder = nn.Sequential(
+            nn.Dropout(self.dropout),
             nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), padding=1, stride=1),
             nn.MaxPool2d(kernel_size=(2, 2)),
             nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), padding=1, stride=1),
@@ -203,9 +204,9 @@ class AUTO(nn.Module):
         # LSTM based AE
         ##########################################
         self.lstmAE = nn.Sequential(
-            nn.Embedding(self.num_q * 2, self.emb_size),
-            nn.LSTM(self.emb_size, self.hidden_size, batch_first=True)
-            # LSTMAE(self.emb_size, self.hidden_size, self.emb_size, num_layers=self.num_layers, dropout=self.dropout)
+            # nn.Embedding(self.num_q * 2, self.emb_size),
+            # nn.LSTM(self.emb_size + 1, self.hidden_size, batch_first=True)
+            LSTMAE(self.emb_size, self.hidden_size, self.emb_size, num_layers=self.num_layers, dropout=self.dropout)
         )
 
 
@@ -214,14 +215,18 @@ class AUTO(nn.Module):
         ##########################################        
         self.dEncoder = nn.Sequential(
             nn.Dropout(self.dropout),
-            nn.Linear(self.hidden_size + 1, int(self.hidden_size / 2)),
+            nn.Linear(self.hidden_size * 2 + num_layers, int(self.hidden_size)),
+            nn.ReLU(),
+            nn.Linear(int(self.hidden_size), int(self.hidden_size / 2)),
             nn.ReLU(),
             nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)),
         )
         self.dDecoder = nn.Sequential(
             nn.Linear(int(self.hidden_size / 4), int(self.hidden_size / 2)),
             nn.ReLU(),
-            nn.Linear(int(self.hidden_size / 2), self.hidden_size + 1),
+            nn.Linear(int(self.hidden_size / 2), int(self.hidden_size)),
+            nn.ReLU(),
+            nn.Linear(int(self.hidden_size), self.hidden_size * 2 + num_layers),
         )
         
         
@@ -229,12 +234,13 @@ class AUTO(nn.Module):
         # Dense Layer for classification
         ##########################################
         self.ffn = nn.Sequential(
-            nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)), 
-            nn.ReLU(),
             nn.Dropout(self.dropout),
+            nn.Linear(self.hidden_size * 2 + num_layers, int(self.hidden_size / 2)), 
+            nn.ReLU(),
+            nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)),
+            nn.ReLU(),
             nn.Linear(int(self.hidden_size / 4), int(self.hidden_size / 6)),
             nn.ReLU(),
-            nn.Dropout(self.dropout),
             nn.Linear(int(self.hidden_size / 6), 1),
             nn.Sigmoid()
         )
@@ -255,44 +261,47 @@ class AUTO(nn.Module):
         # Data Processing
         ##########################################
         x = q + self.num_q * r
-        spa_x = torch.stft(x.float(), 198, 1, return_complex=True) # 나오는 차원수, 1: ntft / 2 + 1, 2: 입력길이 / hop_length + 1
+        spa_x = torch.stft(x.float(), 198, 1, return_complex=True).float() # 나오는 차원수, 1: ntft / 2 + 1, 2: 입력길이 / hop_length + 1
         
         # 채널 추가 및 사이즈 조정
-        # cnn_x = spa_x.reshape(spa_x.shape[0], 1, spa_x.shape[1], spa_x.shape[2]).float()
+        cnn_x = spa_x.reshape(spa_x.shape[0], 1, spa_x.shape[1], spa_x.shape[2]).float()
+        cnn_x = torchvision.transforms.Resize((100, 100), antialias=True)(cnn_x)
 
         ##########################################
         # ConvAE
         ##########################################
-        # hidden_conv = self.convEncoder(cnn_x)
-        # pred_conv = self.convDecoder(hidden_conv)
-        # conv_loss = self.recon_loss(cnn_x, pred_conv).int()
-        
+        hidden_conv = self.convEncoder(cnn_x)
+        pred_conv = self.convDecoder(hidden_conv)
+                
         ##########################################
         # LSTM-AE
         ##########################################
-        # (hidden_lstm, cell_lstm), pred_lstm = self.lstmAE(x)
-        # output, _ = self.lstmAE(x)
-        # lstm_recon_loss = self.recon_loss(x, pred_lstm)
+        (hidden_lstm, cell_lstm), pred_lstm = self.lstmAE(x.float())
+        # output, _ = self.lstmAE(spa_x)
         
         # print(hidden_conv.shape, torch.concat([hidden_lstm[0], hidden_lstm[1]], dim=-1).shape)
         
         ##########################################
         # Fusion Heterogenious Feature
         ##########################################
-        # fusion = torch.concat([spa_x, output], dim=-1)
-                
+        
+        time_fusion = torch.stack([x, pred_lstm], dim=-1)
+        freq_fusion = torch.concat([cnn_x, pred_conv], dim=-1)
+        freq_fusion = freq_fusion.squeeze(1)
+        fusion = torch.concat([time_fusion, freq_fusion], dim=-1)
+                                
         ##########################################
         # DAE
         ##########################################
-        hidden_d = self.dEncoder(spa_x)
+        hidden_d = self.dEncoder(fusion)
         pred_d = self.dDecoder(hidden_d)
-                
+                                        
         ##########################################
         # Prediction
         ##########################################
-        y = self.ffn(hidden_d).squeeze(-1)
+        y = self.ffn(pred_d).squeeze(-1)
 
-        return y, pred_d, spa_x
+        return y, cnn_x.float(), pred_conv.float(), x.float(), pred_lstm.float(), fusion.float(), pred_d.float()
     
 def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, opt, ckpt_path):
     '''
@@ -318,14 +327,17 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, pred_d, fusion = model(q.long(), r.long(), qshft_seqs.long())
+            y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
 
             opt.zero_grad()
             y = torch.masked_select(y, m)
             t = torch.masked_select(r, m)
 
-            loss = 0.8 * binary_cross_entropy(y, t) + 0.2 * mse_loss(pred_d, fusion)
-            loss.requires_grad_(True)
+            loss = 0.7 * binary_cross_entropy(y, t) + \
+                0.1 * mse_loss(cnn_x, pred_conv) + \
+                0.1 * mse_loss(x, pred_lstm) + \
+                0.1 * mse_loss(fusion, pred_d)
+            # loss.requires_grad_(True)
             loss.backward()
             opt.step()
 
@@ -337,7 +349,7 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
 
                 model.eval()
                 
-                y, pred_d, fusion = model(q.long(), r.long(), qshft_seqs.long())
+                y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -369,7 +381,7 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
-                y, pred_d, fusion = model(q.long(), r.long(), qshft_seqs.long())
+                y, cnn_x, pred_conv, x, pred_lstm, fusion, pred_d = model(q.long(), r.long(), qshft_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
