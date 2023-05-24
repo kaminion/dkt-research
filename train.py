@@ -32,7 +32,8 @@ from models.auto import auto_train
 
 from models.utils import collate_fn
 
-
+# Cross Validation
+from sklearn.model_selection import KFold
 
 # wandb
 import wandb
@@ -261,11 +262,10 @@ def main(model_name, dataset_name, use_wandb):
     # 데이터셋 분할
     data_size = len(dataset)
     train_size = int(data_size * train_ratio) 
-    test_size = int(data_size * ((1.0 - train_ratio) / 2.0))
-    exp_size = data_size - train_size - test_size
+    test_size = data_size - train_size
 
-    train_dataset, test_dataset, exp_dataset = random_split(
-        dataset, [train_size, test_size, exp_size], generator=torch.Generator(device=device)
+    train_dataset, test_dataset = random_split(
+        dataset, [train_size, test_size], generator=torch.Generator(device=device)
     )
 
     # pickle에 얼마만큼 분할했는지 저장
@@ -278,10 +278,6 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "rb"
         ) as f:
             test_dataset.indices = pickle.load(f)
-        with open(
-            os.path.join(dataset.dataset_dir, "exp_indices.pkl"), "rb"
-        ) as f:
-            exp_dataset.indices = pickle.load(f)
     else:
         with open(
             os.path.join(dataset.dataset_dir, "train_indices.pkl"), "wb"
@@ -291,10 +287,6 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "wb"
         ) as f:
             pickle.dump(test_dataset.indices, f)
-        with open(
-            os.path.join(dataset.dataset_dir, "exp_indices.pkl"), "wb"
-        ) as f:
-            pickle.dump(exp_dataset.indices, f)
 
     # Loader에 데이터 적재
     train_loader = DataLoader(
@@ -303,10 +295,6 @@ def main(model_name, dataset_name, use_wandb):
     )
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn, generator=torch.Generator(device=device)
-    )
-    exp_loader = DataLoader(
-        exp_dataset, batch_size=batch_size, shuffle=True,
         collate_fn=collate_fn, generator=torch.Generator(device=device)
     )
 
@@ -320,7 +308,7 @@ def main(model_name, dataset_name, use_wandb):
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
     aucs, loss_means = \
         train_model(
-            model, train_loader, test_loader, exp_loader, dataset.num_q, num_epochs, opt, ckpt_path
+            model, train_loader, test_loader, dataset.num_q, num_epochs, opt, ckpt_path
         )
     # DKT나 다른 모델 학습용
     # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)

@@ -301,7 +301,7 @@ class AUTO(nn.Module):
 
         return y, cnn_x.float(), pred_conv.float(), x.float(), pred_lstm.float(), None, pred_d.float()
     
-def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, opt, ckpt_path):
+def auto_train(model, train_loader, test_loader, num_q, num_epochs, opt, ckpt_path):
     '''
         Args:
             train_loader: the PyTorch DataLoader instance for training
@@ -343,7 +343,7 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
             loss_mean.append(loss.detach().cpu().numpy())
 
         with torch.no_grad():
-            for data in test_loader:
+            for data in train_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
@@ -376,7 +376,7 @@ def auto_train(model, train_loader, test_loader, exp_loader, num_q, num_epochs, 
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     for i in range(1, num_epochs + 1):
         with torch.no_grad():
-            for data in exp_loader:
+            for data in test_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
                 model.eval()
