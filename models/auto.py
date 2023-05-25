@@ -154,7 +154,7 @@ class LSTMAE(nn.Module):
         self.encoder = nn.LSTM(self.emb_size, self.hidden_size, self.num_layers, batch_first=True, dropout=self.dropout)
         
         ### For Decoding
-        self.decoder = nn.LSTM(self.emb_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.decoder = nn.LSTM(self.hidden_size, self.emb_size, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, self.output_size)
         
         # self.criterion = nn.MSELoss()
