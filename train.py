@@ -242,8 +242,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
         train_model = plus_train
     elif model_name == 'dkvmn-':
-    model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
-    train_model = plus_train
+        model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
+        train_model = plus_train
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'saint':
