@@ -42,26 +42,25 @@ class SUBJ_DKVMN(Module):
 
         # Right network
         # transformer network for feature extraction
-        # encoder_layers = TransformerEncoderLayer(d_model=self.dim_s, nhead=2)
-        # self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
+        encoder_layers = TransformerEncoderLayer(d_model=self.dim_s, nhead=2)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
 
         # BERT for feature extraction
-        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        # self.at_emb_layer = Sequential(
-        #     Linear(768, self.dim_s),
-        #     ReLU(),
-        #     LayerNorm(self.dim_s)
-        # )
+        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        self.at_emb_layer = Sequential(
+            Linear(768, self.dim_s),
+            ReLU(),
+            LayerNorm(self.dim_s)
+        )
         self.at_emb_layer = Linear(768, self.dim_s)
         self.at2_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
-        # self.qr2_emb_layer = Linear(self.dim_s, self.dim_s)
 
         # 버트 허용여부
-        self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
-        # self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
+        # self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
@@ -89,11 +88,11 @@ class SUBJ_DKVMN(Module):
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
-        # em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
+        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -104,8 +103,8 @@ class SUBJ_DKVMN(Module):
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
         
         # BERT 사용 여부
-        v = self.v_emb_layer(q + r) 
-        # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
+        # v = self.v_emb_layer(q + r) 
+        v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
@@ -154,7 +153,8 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
     '''
     aucs = []
     loss_means = []  
-
+    accs = []
+    
     max_auc = 0
 
     for i in range(0, num_epochs):
@@ -190,15 +190,17 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(r, m).detach().cpu()
+            t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
             )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
+            acc = metrics.accuracy_score(t.numpy(), bin_y.numpy())
 
             loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
             
-            print(f"[Valid] Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+            print(f"[Valid] Epoch: {i}, AUC: {auc}, ACC: {acc} Loss Mean: {loss_mean} ")
 
             if auc > max_auc : 
                 torch.save(
@@ -220,11 +222,13 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(r, m).detach().cpu()
+            t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
             )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
+            acc = metrics.accuracy_score(t.numpy(), bin_y.numpy())
 
             loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
             
@@ -232,6 +236,6 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             aucs.append(auc)
             loss_means.append(loss_mean)     
-        
+            accs.append(acc)
 
-    return aucs, loss_means
+    return aucs, loss_means, accs
