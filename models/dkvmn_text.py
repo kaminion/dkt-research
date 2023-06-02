@@ -57,10 +57,10 @@ class SUBJ_DKVMN(Module):
         self.at2_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
-        self.qr2_emb_layer = Linear(2 * self.dim_s, self.dim_s)
+        # self.qr2_emb_layer = Linear(self.dim_s, self.dim_s)
 
         # self.v_emb_layer = Embedding(2 * self.num_q + 100 ** 2, self.dim_s)
-        self.v_emb_layer = Linear(2 * self.dim_s, 2 * self.dim_s)
+        self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
         # self.v2_emb_layer = Linear(self.wordlen, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
@@ -85,7 +85,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr2_emb_layer(self.qr_emb_layer(q + self.num_q * r).permute(0, 2, 1))
+        x = self.qr_emb_layer(q + self.num_q * r).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
@@ -102,13 +102,9 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
-        # print(f"#1 {x.shape} {em_at.shape}")
         v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
-        # v = self.v2_emb_layer(v)
-        # print(torch.matmul(k, v).shape, k.shape, v.shape)
-        # v = torch.matmul(k, v)
+        
         # Correlation Weight
-        # print(f"#2 {v.shape} {k.shape}")
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
         # Write Process
         e = torch.sigmoid(self.e_layer(v))
@@ -123,7 +119,6 @@ class SUBJ_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
-        # print(w.unsqueeze(-1).shape, Mv.shape)
         diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
@@ -145,72 +140,95 @@ class SUBJ_DKVMN(Module):
 
         return p, Mv
     
-    def train_model(self, train_loader, test_loader, num_epochs, opt, ckpt_path):
-        '''
-            Args:
-                train_loader: the PyTorch DataLoader instance for training
-                test_loader: the PyTorch DataLoader instance for test
-                num_epochs: the number of epochs
-                opt: the optimization to train this model
-                ckpt_path: the path to save this model's parameters
-        '''
-        aucs = []
-        loss_means = []  
+def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epochs, batch_size, opt, ckpt_path):
+    '''
+        Args:
+            train_loader: the PyTorch DataLoader instance for training
+            test_loader: the PyTorch DataLoader instance for test
+            num_epochs: the number of epochs
+            opt: the optimization to train this model
+            ckpt_path: the path to save this model's parameters
+    '''
+    aucs = []
+    loss_means = []  
 
-        max_auc = 0
+    max_auc = 0
 
-        for i in range(0, num_epochs):
-            loss_mean = []
+    for i in range(0, num_epochs):
+        loss_mean = []
 
-            for data in train_loader:
-                # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-                q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
-                self.train()
-                
-                # 현재까지의 입력을 받은 뒤 다음 문제 예측
-                y, _ = self(q.long(), r.long(), bert_s, bert_t, bert_m)
+        for data in train_loader:
+            # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+            model.train()
+            
+            # 현재까지의 입력을 받은 뒤 다음 문제 예측
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
-                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                y = torch.masked_select(y, m)
-                t = torch.masked_select(r, m)
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m)
+            t = torch.masked_select(r, m)
 
-                opt.zero_grad()
-                loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
-                loss.backward()
-                opt.step()
+            opt.zero_grad()
+            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss.backward()
+            opt.step()
 
-                loss_mean.append(loss.detach().cpu().numpy())
+            loss_mean.append(loss.detach().cpu().numpy())
 
-            with torch.no_grad():
-                for data in test_loader:
-                    q, r, _, _, m, bert_s, bert_t, bert_m, _ = data
+    # Validation
+    with torch.no_grad():
+        for i, data in enumerate(valid_loader):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                    self.eval()
+            model.eval()
 
-                    y, _ = self(q.long(), r.long(), bert_s, bert_t, bert_m)
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
-                    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                    y = torch.masked_select(y, m).detach().cpu()
-                    t = torch.masked_select(r, m).detach().cpu()
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(r, m).detach().cpu()
 
-                    auc = metrics.roc_auc_score(
-                        y_true=t.numpy(), y_score=y.numpy()
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+
+            loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+            
+            print(f"[Valid] Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+
+            if auc > max_auc : 
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        ckpt_path, "model.ckpt"
                     )
+                )
+                max_auc = auc
+    # Test
+    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
+    with torch.no_grad():
+        for i, data in enumerate(test_loader):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                    loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
-                    
-                    print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+            model.eval()
 
-                    if auc > max_auc : 
-                        torch.save(
-                            self.state_dict(),
-                            os.path.join(
-                                ckpt_path, "model.ckpt"
-                            )
-                        )
-                        max_auc = auc
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
-                    aucs.append(auc)
-                    loss_means.append(loss_mean)
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(r, m).detach().cpu()
 
-        return aucs, loss_means
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+
+            loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+            
+            print(f"[Test] Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+
+            aucs.append(auc)
+            loss_means.append(loss_mean)     
+        
+
+    return aucs, loss_means

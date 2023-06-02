@@ -29,6 +29,7 @@ from models.akt import AKT
 # 모델에 따른 train
 from models.dkt import dkt_train
 from models.auto import auto_train
+from models.dkvmn_text import train_model as plus_train
 
 from models.utils import collate_fn
 
@@ -239,6 +240,10 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
+        train_model = plus_train
+    elif model_name == 'dkvmn-':
+    model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
+    train_model = plus_train
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'saint':
@@ -262,10 +267,11 @@ def main(model_name, dataset_name, use_wandb):
     # 데이터셋 분할
     data_size = len(dataset)
     train_size = int(data_size * train_ratio) 
-    test_size = data_size - train_size
+    valid_size = int(data_size * ((1.0 - train_ratio) / 2.0))
+    test_size = data_size - train_size - valid_size
 
-    train_dataset, test_dataset = random_split(
-        dataset, [train_size, test_size], generator=torch.Generator(device=device)
+    train_dataset, valid_dataset, test_dataset = random_split(
+        dataset, [train_size, valid_size, test_size], generator=torch.Generator(device=device)
     )
 
     # pickle에 얼마만큼 분할했는지 저장
@@ -274,6 +280,10 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "train_indices.pkl"), "rb"
         ) as f:
             train_dataset.indices = pickle.load(f)
+        with open(
+            os.path.join(dataset.dataset_dir, "valid_indicies.pkl"), "rb"
+        ) as f:
+            valid_dataset.indices = pickle.load(f)
         with open(
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "rb"
         ) as f:
@@ -284,6 +294,10 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(train_dataset.indices, f)
         with open(
+            os.path.join(dataset.dataset_dir, "valid_indicies.pkl"), "wb"
+        ) as f:
+            pickle.dump(valid_dataset.indices, f)
+        with open(
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "wb"
         ) as f:
             pickle.dump(test_dataset.indices, f)
@@ -291,6 +305,10 @@ def main(model_name, dataset_name, use_wandb):
     # Loader에 데이터 적재
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True,
+        collate_fn=collate_fn, generator=torch.Generator(device=device)
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=batch_size, shuffle=True,
         collate_fn=collate_fn, generator=torch.Generator(device=device)
     )
     test_loader = DataLoader(
@@ -308,7 +326,7 @@ def main(model_name, dataset_name, use_wandb):
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
     aucs, loss_means = \
         train_model(
-            model, train_dataset, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
+            model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
         )
     # DKT나 다른 모델 학습용
     # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
