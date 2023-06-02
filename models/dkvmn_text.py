@@ -46,8 +46,8 @@ class SUBJ_DKVMN(Module):
         # self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
 
         # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
         #     ReLU(),
@@ -104,7 +104,7 @@ class SUBJ_DKVMN(Module):
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
         
         # BERT 사용 여부
-        v = self.v_emb_layer(x) 
+        v = self.v_emb_layer(q + r) 
         # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
         
         # Correlation Weight
