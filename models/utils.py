@@ -12,6 +12,9 @@ else:
 from transformers import BertTokenizer
 from sklearn import metrics
 
+from sklearn.metrics import classification_report
+from torch.nn.functional import one_hot, binary_cross_entropy
+
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, hint_seqs, seq_len, pad_val=-1):
@@ -321,3 +324,32 @@ def equal_opportunity(y_pred, y_true, sensitive):
     regularization = tpr_diff
 
     return regularization, eq_opp
+
+def cal_acc_class(q_seqs, y_true, y_pred):
+
+    # intialize a dictionary to store the accuracy of each question.
+    question_cnts = {}
+    question_corrects = {}
+    accs = {}
+    
+    for idx, (question, correct, pred_correct) in enumerate(zip(q_seqs, y_true, y_pred)):
+        
+        question_id = question.item()        
+        correctness = 1 if pred_correct.item() == correct.item() else 0
+                
+        # caculate the count and correctness of the question
+        if(question_id in question_cnts):
+            question_cnts[question_id] += 1
+            question_corrects[question_id] += correctness
+        else: 
+            question_cnts[question_id] = 1
+            question_corrects[question_id] = correctness
+    
+    # caculate the accuracy of the question
+    for ((cnt_k, cnt_v), (cr_k, cr_v)) in zip(question_cnts.items(), question_corrects.items()):
+        
+        # 해당 문제 번호에 accuracy 저장 (맞춘 수 / 총 문제 수)
+        accs[cnt_k] = cr_v / cnt_v
+
+    
+    return accs
