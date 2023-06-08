@@ -326,13 +326,17 @@ def equal_opportunity(y_pred, y_true, sensitive):
     return regularization, eq_opp
 
 def cal_acc_class(q_seqs, y_true, y_pred):
-
+    # convert to numpy, but y_pred is list
+    q_seqs_np = q_seqs.numpy()
+    y_true_np = y_true.numpy()
+    y_pred_np = y_pred
+    
     # intialize a dictionary to store the accuracy of each question.
     question_cnts = {}
     question_corrects = {}
     accs = {}
     
-    for idx, (question, correct, pred_correct) in enumerate(zip(q_seqs, y_true, y_pred)):
+    for idx, (question, correct, pred_correct) in enumerate(zip(q_seqs_np, y_true_np, y_pred_np)):
         
         question_id = question.item()        
         correctness = 1 if pred_correct.item() == correct.item() else 0

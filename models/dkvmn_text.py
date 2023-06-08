@@ -1,4 +1,5 @@
 import os 
+from tqdm import tqdm
 
 import numpy as np 
 import torch 
@@ -159,7 +160,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
     
     max_auc = 0
 
-    for i in range(0, num_epochs):
+    for i in tqdm(range(0, num_epochs)):
         loss_mean = []
 
         for data in train_loader:
@@ -172,7 +173,6 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
             t = torch.masked_select(r, m)
-            q = torch.masked_select(q, m)
 
             opt.zero_grad()
             loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
@@ -223,6 +223,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            q = torch.masked_select(q, m).detach().cpu()
             y = torch.masked_select(y, m).detach().cpu()
             t = torch.masked_select(r, m).detach().cpu()
 
@@ -240,7 +241,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             aucs.append(auc)
             loss_means.append(loss_mean)     
             accs.append(acc)
-            q_accs = cal_acc_class(q.long(), t.long(), y.long())
+            q_accs = cal_acc_class(q.long(), t.long(), bin_y)
 
 
     return aucs, loss_means, accs, q_accs
