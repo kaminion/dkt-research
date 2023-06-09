@@ -241,7 +241,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             aucs.append(auc)
             loss_means.append(loss_mean)     
             accs.append(acc)
-            q_accs = cal_acc_class(q.long(), t.long(), bin_y)
+            q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
 
 
-    return aucs, loss_means, accs, q_accs
+    return aucs, loss_means, accs, q_accs, cnt

@@ -339,7 +339,7 @@ def cal_acc_class(q_seqs, y_true, y_pred):
     for idx, (question, correct, pred_correct) in enumerate(zip(q_seqs_np, y_true_np, y_pred_np)):
         
         question_id = question.item()        
-        correctness = 1 if pred_correct.item() == correct.item() else 0
+        correctness = 1 if pred_correct == correct.item() else 0
                 
         # caculate the count and correctness of the question
         if(question_id in question_cnts):
@@ -356,4 +356,4 @@ def cal_acc_class(q_seqs, y_true, y_pred):
         accs[cnt_k] = cr_v / cnt_v
 
     
-    return accs
+    return accs, question_cnts
