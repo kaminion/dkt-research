@@ -239,7 +239,7 @@ def main(model_name, dataset_name, use_wandb):
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn+':
-        model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
+        model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
         train_model = plus_train
     elif model_name == 'dkvmn-':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)

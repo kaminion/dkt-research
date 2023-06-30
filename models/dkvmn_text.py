@@ -19,9 +19,11 @@ class SUBJ_DKVMN(Module):
             dim_s: the dimension of the state vectors in this model
             size_m: the memory size of this model
     '''
-    def __init__(self, num_q, dim_s, size_m) -> None:
+    def __init__(self, num_q, num_qid, dim_s, size_m) -> None:
         super(SUBJ_DKVMN, self).__init__()
         self.num_q = num_q 
+        # 새로추가 됨
+        self.num_qid = num_qid
         self.dim_s = dim_s 
         self.size_m = size_m
 
@@ -58,7 +60,7 @@ class SUBJ_DKVMN(Module):
         self.at_emb_layer = Linear(768, self.dim_s)
         self.at2_emb_layer = Linear(512, self.dim_s)
 
-        self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.qr_emb_layer = Embedding(self.num_qid + self.num_q, self.dim_s)
 
         # 버트 허용여부
         # self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
@@ -75,7 +77,7 @@ class SUBJ_DKVMN(Module):
         
 
     
-    def forward(self, q, r, at_s, at_t, at_m, q2diff):
+    def forward(self, q, r, at_s, at_t, at_m, q2diff, qid):
         '''
             Args: 
                 q: the question(KC) sequence with the size of [batch_size, n]
@@ -86,7 +88,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + self.num_q * r).permute(0, 2, 1)
+        x = self.qr_emb_layer(q + qid).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
@@ -102,7 +104,7 @@ class SUBJ_DKVMN(Module):
         Mv = [Mvt]
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
-        k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 
+        k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 였으나 내가 qid로 바꿈
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
@@ -168,7 +170,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -180,7 +182,13 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             opt.step()
             
             loss_mean.append(loss.detach().cpu().numpy())
+        # auc = metrics.roc_auc_score(
+        #     y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
+        # )
+        # bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+        # acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
+        # print(f"[Train] number: {i}, AUC: {auc}, ACC: {acc} ")
     # Validation
     with torch.no_grad():
         for i, data in enumerate(valid_loader):
@@ -188,7 +196,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m).detach().cpu()
@@ -220,7 +228,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long())
+            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
