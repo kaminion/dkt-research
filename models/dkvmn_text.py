@@ -60,7 +60,7 @@ class SUBJ_DKVMN(Module):
         self.at_emb_layer = Linear(768, self.dim_s)
         self.at2_emb_layer = Linear(512, self.dim_s)
 
-        self.qr_emb_layer = Embedding(self.num_qid + self.num_q, self.dim_s)
+        self.qr_emb_layer = Embedding(self.num_qid * self.num_q, self.dim_s)
 
         # 버트 허용여부
         # self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
@@ -88,7 +88,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + qid).permute(0, 2, 1)
+        x = self.qr_emb_layer(q * qid).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
@@ -182,13 +182,13 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             opt.step()
             
             loss_mean.append(loss.detach().cpu().numpy())
-        # auc = metrics.roc_auc_score(
-        #     y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
-        # )
-        # bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-        # acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+        auc = metrics.roc_auc_score(
+            y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
+        )
+        bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+        acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-        # print(f"[Train] number: {i}, AUC: {auc}, ACC: {acc} ")
+        print(f"[Train] number: {i}, AUC: {auc}, ACC: {acc} ")
     # Validation
     with torch.no_grad():
         for i, data in enumerate(valid_loader):
