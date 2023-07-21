@@ -13,6 +13,7 @@ from torch.nn.functional import binary_cross_entropy, pad, one_hot
 from sklearn import metrics 
 from data_loaders.assist2009 import ASSIST2009
 from data_loaders.assist2012 import ASSIST2012
+from data_loaders.ednet01 import EdNet01
 
 # 모델 추가
 from models.dkt import DKT
@@ -218,6 +219,8 @@ def main(model_name, dataset_name, use_wandb):
         dataset = ASSIST2009(seq_len)
     elif dataset_name == "ASSIST2012":
         dataset = ASSIST2012(seq_len)
+    elif dataset_name == "EDNET01":
+        dataset = EdNet01(seq_len)
 
     if torch.cuda.is_available():
         device = "cuda"
