@@ -110,6 +110,67 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, hint_seqs, seq_len,
 
     return proc_q_seqs, proc_r_seqs, proc_at_seqs, proc_q2diff, proc_pid_seqs, proc_hint_seqs
 
+def collate_ednet(batch, pad_val=-1):
+    '''
+        아래서는 at : answer_text 였듯이
+        여기서는 t: 가 optional answer임.
+    '''
+    q_seqs = []
+    r_seqs = []
+    qshft_seqs = []
+    rshft_seqs = []
+    t_seqs = []
+    tshft_seqs = []
+    
+    for q_seq, r_seq, t_seq in batch:
+        q_seqs.append(FloatTensor(q_seq[:-1]))
+        r_seqs.append(FloatTensor(r_seq[:-1]))
+        t_seqs.append(t_seq[:-1])
+        qshft_seqs.append(FloatTensor(q_seq[1:]))
+        rshft_seqs.append(FloatTensor(r_seq[1:]))
+        tshft_seqs.append(FloatTensor(t_seq[1:]))
+    
+    q_seqs = pad_sequence(
+        q_seqs, batch_first=True, padding_value=pad_val
+    )
+    r_seqs = pad_sequence(
+        r_seqs, batch_first=True, padding_value=pad_val
+    )
+    qshft_seqs = pad_sequence(
+        qshft_seqs, batch_first=True, padding_value=pad_val
+    )
+    rshft_seqs = pad_sequence(
+        rshft_seqs, batch_first=True, padding_value=pad_val
+    )
+    t_seqs = pad_sequence(
+        t_seqs, batch_first=True, padding_value=pad_val
+    )
+    tshft_seqs = pad_sequence(
+        tshft_seqs, batch_first=True, padding_value=pad_val
+    )
+    
+    mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
+
+    q_seqs, r_seqs, qshft_seqs, rshft_seqs, t_seqs, tshft_seqs = \
+        q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
+        rshft_seqs * mask_seqs, t_seqs * mask_seqs, tshft_seqs * mask_seqs
+        
+    bert_details = []
+    
+    for answer_text in t_seqs:
+        text = ' '.join(answer_text)
+        encoded_bert_sent = bert_tokenizer.encode_plus(
+            text, add_special_tokens=True, padding='max_length', truncation=True
+        )
+        bert_details.append(encoded_bert_sent)
+    
+    bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
+    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
+    bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
+    
+    
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, [], [], [], []
+
 
 def collate_fn(batch, pad_val=-1):
     '''

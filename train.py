@@ -32,7 +32,7 @@ from models.dkt import dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 
-from models.utils import collate_fn
+from models.utils import collate_fn, collate_ednet
 
 # Cross Validation
 from sklearn.model_selection import KFold
@@ -215,12 +215,14 @@ def main(model_name, dataset_name, use_wandb):
 
 
     # 데이터셋 추가 가능
+    collate_pt = collate_fn
     if dataset_name == "ASSIST2009":
         dataset = ASSIST2009(seq_len)
     elif dataset_name == "ASSIST2012":
         dataset = ASSIST2012(seq_len)
     elif dataset_name == "EDNET01":
         dataset = EdNet01(seq_len)
+        collate_pt = collate_ednet
 
     if torch.cuda.is_available():
         device = "cuda"
@@ -306,17 +308,18 @@ def main(model_name, dataset_name, use_wandb):
             pickle.dump(test_dataset.indices, f)
 
     # Loader에 데이터 적재
+    
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn, generator=torch.Generator(device=device)
+        collate_fn=collate_pt, generator=torch.Generator(device=device)
     )
     valid_loader = DataLoader(
         valid_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn, generator=torch.Generator(device=device)
+        collate_fn=collate_pt, generator=torch.Generator(device=device)
     )
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_fn, generator=torch.Generator(device=device)
+        collate_fn=collate_pt, generator=torch.Generator(device=device)
     )
 
     if optimizer == "sgd":
