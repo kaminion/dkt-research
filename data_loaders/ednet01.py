@@ -64,8 +64,6 @@ class EdNet01(Dataset):
 
 
     def preprocess(self):
-        path = self.pickle_path
-
         u_seqs = []
         qid_seqs = []
         r_seqs = []
@@ -75,19 +73,27 @@ class EdNet01(Dataset):
         concate_csv = {}
         
         # 파일 전체적으로 읽기
-        file_list = os.listdir("./data_loaders/dataset/KT1_train") # 파일리스트 로드
+        file_list = os.listdir(f"{self.dataset_dir}/KT1") # 파일리스트 로드
         # 정답 비교를 위한 파일 추가
-        q_df = pd.read_csv(f"./data_loaders/dataset/KT1_train/questions.csv")
+        q_df = pd.read_csv(f"{self.dataset_dir}/questions.csv")
         q_df['question_id'] = q_df['question_id'].astype(str)
+        q_df.set_index('question_id')
         
         # 파일리스트 로드 후 불러오기 (로딩 적용)
         for file in tqdm(file_list, leave=False):
             u_id = f'{file}'
-            u_df = pd.read_csv(f"/data_loaders/dataset/KT1_train/{file}")
+            u_df = pd.read_csv(f"{self.dataset_dir}/KT1/{file}")
+            u_df['correct'] = -1
             # 가끔 안되는게 있어서 타입 변경
             u_df['question_id'] = u_df['question_id'].astype(str)
-            u_df['correct'] = u_df['correct'].where(q_df['question_id'] == u_df['question_id'] and u_df["user_answer"] == q_df['correct_answer'], 1)
-            u_df['correct'] = u_df['correct'].where(u_df['correct'] != 1, 0)
+            
+            # 1. q_df에서 먼저 u_df와 일치하여 필터링 되는 것 선정
+            qu_df = q_df.loc[q_df['question_id'].isin(u_df['question_id'])].copy()
+            # 2. 그 후 정답 값을 비교하여 1, 0 판정을 내림
+            condition = [ (u_df['question_id'].isin(qu_df['question_id'])) & (u_df['user_answer'].isin(qu_df['correct_answer'])) ]
+            choice = [1]
+            
+            u_df['correct'] = np.select(condition, choice, 0)
             
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(u_id)
@@ -96,16 +102,16 @@ class EdNet01(Dataset):
             r_seqs.append([u_df['correct'].values])
             t_seqs.append([u_df['user_answer'].values])
             
-            concate_csv[file] = u_df
+            concate_csv[u_id] = u_df
             
         # 피클에 파일 저장
-        with open(f"{path}/{Q_SEQ_PICKLE}", "wb") as f:
+        with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(qid_seqs, f)
-        with open(f"{path}/{R_SEQ_PICKLE}", "wb") as f:
+        with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "wb") as f:
             pickle.dump(r_seqs, f)
-        with open(f"{path}/{U_SEQ_PICKLE}", "wb") as f:
+        with open(os.path.join(self.dataset_dir, U_SEQ_PICKLE), "wb") as f:
             pickle.dump(u_seqs, f)
-        with open(f"{path}/{T_SEQ_PICKLE}", "wb") as f:
+        with open(os.path.join(self.dataset_dir, T_SEQ_PICKLE), "wb") as f:
             pickle.dump(t_seqs, f)
 
         # 새로 만든 파일 저장

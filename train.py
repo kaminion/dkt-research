@@ -375,7 +375,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--use_wandb',
         type= lambda s: s.lower() in true_list,
-        default=True,
+        default=False,
         help="This option value is using wandb"
     )
 
