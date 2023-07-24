@@ -29,7 +29,7 @@ class EdNet01(Dataset):
         self.dataset_dir = dataset_dir
 
         # 미리 피클에 담겨진 파일들 로딩
-        if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)):
+        if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)) & os.path.exists(os.path.join(self.dataset_dir, 'Ednet01.csv')):
             with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "rb") as f:
                 self.q_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "rb") as f:
@@ -46,8 +46,8 @@ class EdNet01(Dataset):
         )
 
         # 유저와 문제 갯수 저장
-        self.num_u = self.u_list.shape[0]
-        self.num_q = self.q_list.shape[0]
+        self.num_u = self.u_seqs.shape[0]
+        self.num_q = self.q_seqs.shape[0]
         
         if seq_len:
             self.q_seqs, self.r_seqs, self.t_seqs, [], [], [] = \
@@ -116,6 +116,6 @@ class EdNet01(Dataset):
 
         # 새로 만든 파일 저장
         new_file = pd.concat(concate_csv.values(), ignore_index=True)
-        new_file.to_csv('Ednet01.csv', index=False)
+        new_file.to_csv(os.path.join(self.dataset_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
         
         return qid_seqs, r_seqs, u_seqs, t_seqs
