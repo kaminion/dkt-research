@@ -7,7 +7,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 from models.utils import match_seq_len
 
-DATASET_DIR = "datasets/ASSIST2009/"
+DATASET_DIR = "datasets/ASSIST2012/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
 AT_SEQ_PICKLE = "at_seqs.pkl"
@@ -19,13 +19,13 @@ P_ID_PICKLE = 'pid.pkl'
 P_LIST_PICKLE = "p_list.pkl"
 HINT_LIST_PICKLE = "hint_use.pkl"
 
-class ASSIST2009(Dataset):
+class ASSIST2012(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR) -> None:
         super().__init__()
 
         self.dataset_dir = dataset_dir
         self.dataset_path = os.path.join(
-            self.dataset_dir, "skill_builder_data.csv"
+            self.dataset_dir, "2012-2013-data-with-predictions-4-final.csv"
         )
 
         # 미리 피클에 담겨진 파일들 로딩
@@ -77,27 +77,29 @@ class ASSIST2009(Dataset):
         return self.len
 
     def preprocess(self):
-        # 2번째 줄 dropna 내가 추가한 것
-        df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1').dropna(subset=["skill_name"])\
-            .dropna(subset=['answer_text'])\
-            .drop_duplicates(subset=["order_id", "skill_name"])\
-            .sort_values(by=["order_id"])
+
+        df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1').dropna(subset=["skill"])\
+            .drop_duplicates(subset=["problem_log_id", "skill"])\
+            .sort_values(by=["problem_log_id"])
         df['answer_text'] = df['answer_text'].fillna(' ')
 
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["user_id"].values)
-        q_list = np.unique(df["skill_name"].values) 
+        q_list = np.unique(df["skill"].values) 
         pid_list = np.unique(df["problem_id"].values)
+
+        df.loc[df['correct'] == 1, 'correct'] = 1
+        df.loc[df['correct'] != 1, 'correct'] = 0
+
+        # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
+        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
+        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
 
         # map 형태로 스킬이름: index 자료 저장, 유저도 유저명: 인덱스로 저장
         u2idx = {u: idx for idx, u in enumerate(u_list)}
         q2idx = {q: idx for idx, q in enumerate(q_list)}
         d2idx = {}
         p2idx = {pid: idx for idx, pid in enumerate(pid_list)}
-
-        # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
-        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
-        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
 
         q_seqs = []
         r_seqs = []
@@ -108,7 +110,7 @@ class ASSIST2009(Dataset):
 
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
-            skills = df[df["skill_name"] == q]
+            skills = df[df["skill"] == q]
             c_seq = skills["correct"].values
             d2idx[q] = c_seq.sum() / len(c_seq)
 
@@ -118,14 +120,13 @@ class ASSIST2009(Dataset):
 
             # 유저의 스킬에 대한 해당 스킬의 인덱스와 정답 여부를 함께 시퀀스로 생성(여러 스킬의 경우에도 해당 인덱스 저장, 정답여부 저장) 
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
-            q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
+            q_seq = np.array([q2idx[q] for q in df_u["skill"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
             r_seq = df_u["correct"].values # 유저의 정답여부 저장
             at_seq = df_u['answer_text'].values
             pid_seq = np.array([p2idx[pid] for pid in df_u['problem_id']]) # 유저가 푼 문제에 대한 해당 문제의 인덱스 리스트들을 np.array로 형변환
 
             # 유저가 푼 문제들의 정오답 비율을 구함
-            d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
-
+            d_seq = np.array([d2idx[q] for q in df_u["skill"]])
             hint_seq = df_u['hint_count'].values
 
             # 해당 리스트들을 다시 리스트에 저장
@@ -135,6 +136,7 @@ class ASSIST2009(Dataset):
             q2diff.append(d_seq)
             pid_seqs.append(pid_seq)
             hint_seqs.append(hint_seq)
+
 
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
@@ -153,7 +155,7 @@ class ASSIST2009(Dataset):
         with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "wb") as f:
             pickle.dump(pid_seqs, f)
         with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "wb") as f:
-            pickle.dump(pid_list, f)
+            pickle.dump(pid_list, f)        
         with open(os.path.join(self.dataset_dir, HINT_LIST_PICKLE), "wb") as f:
             pickle.dump(hint_seqs, f)
 
