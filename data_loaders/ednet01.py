@@ -70,7 +70,7 @@ class EdNet01(Dataset):
         t_seqs = []
 
         # 새로운 csv 파일 저장을 위한 딕셔너리 생성
-        concate_csv = {}
+        concate_csv = pd.DataFrame()
         
         # 파일 전체적으로 읽기
         file_list = os.listdir(f"{self.dataset_dir}/KT1") # 파일리스트 로드
@@ -96,13 +96,13 @@ class EdNet01(Dataset):
             u_df['correct'] = np.select(condition, choice, 0)
             
             # 유저 아이디 시퀀스에 넣기
-            u_seqs.append(u_id)
+            u_seqs.append(np.array([u_id]))
 
             qid_seqs.append([u_df['question_id'].values])
             r_seqs.append([u_df['correct'].values])
             t_seqs.append([u_df['user_answer'].values])
             
-            concate_csv[u_id] = u_df
+            concate_csv = pd.concat([concate_csv, u_df])
             
         # 피클에 파일 저장
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
@@ -115,7 +115,6 @@ class EdNet01(Dataset):
             pickle.dump(t_seqs, f)
 
         # 새로 만든 파일 저장
-        new_file = pd.concat(concate_csv.values(), ignore_index=True)
-        new_file.to_csv(os.path.join(self.dataset_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
+        concate_csv.to_csv(os.path.join(self.dataset_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
         
         return qid_seqs, r_seqs, u_seqs, t_seqs
