@@ -2,6 +2,7 @@ import os
 import argparse
 import json
 import pickle
+import random
 
 import numpy as np
 
@@ -31,6 +32,7 @@ from models.akt import AKT
 from models.dkt import dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
+from models.sakt import sakt_train
 
 from models.utils import collate_fn, collate_ednet
 
@@ -39,6 +41,19 @@ from sklearn.model_selection import KFold
 
 # wandb
 import wandb
+
+# seed 고정
+seed = 2021
+#deterministic = True
+
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+#if deterministic:
+    #torch.backends.cudnn.deterministic = True
+    #torch.backends.cudnn.benchmark = False
+
 
 def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs, opt, ckpt_path):
     '''
@@ -251,6 +266,7 @@ def main(model_name, dataset_name, use_wandb):
         train_model = plus_train
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
+        train_model = sakt_train
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'akt':
@@ -337,15 +353,15 @@ def main(model_name, dataset_name, use_wandb):
     # DKT나 다른 모델 학습용
     # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
     
-    with open(os.path.join(ckpt_path, "aucs.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
         pickle.dump(aucs, f)
-    with open(os.path.join(ckpt_path, "loss_means.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
         pickle.dump(loss_means, f)
-    with open(os.path.join(ckpt_path, "accs.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
         pickle.dump(accs, f)
-    with open(os.path.join(ckpt_path, "q_accs.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
         pickle.dump(q_accs, f)
-    with open(os.path.join(ckpt_path, "q_cnts.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
         pickle.dump(q_cnts, f)
         
 # program main entry point
