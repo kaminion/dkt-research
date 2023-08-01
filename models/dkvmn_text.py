@@ -60,7 +60,7 @@ class SUBJ_DKVMN(Module):
         self.at_emb_layer = Linear(768, self.dim_s)
         self.at2_emb_layer = Linear(512, self.dim_s)
 
-        self.qr_emb_layer = Embedding(self.num_qid * self.num_q, self.dim_s)
+        self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
         # 버트 허용여부
         # self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
@@ -88,7 +88,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q * qid).permute(0, 2, 1)
+        x = self.qr_emb_layer(q + r * self.num_q).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
@@ -104,7 +104,7 @@ class SUBJ_DKVMN(Module):
         Mv = [Mvt]
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
-        k = self.k_emb_layer(q) # 보통의 키는 컨셉 수 였으나 내가 qid로 바꿈
+        k = self.k_emb_layer(q) # 보통의 키는 컨셉 수
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
@@ -207,10 +207,9 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
-
-            loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
+            loss = binary_cross_entropy(y, t)
             
-            print(f"[Valid] Epoch: {i}, AUC: {auc}, ACC: {acc} Loss Mean: {loss_mean} ")
+            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
 
             if auc > max_auc : 
                 torch.save(
@@ -240,16 +239,16 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
+            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
-            loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
-            
-            print(f"[Test] Epoch: {i}, AUC: {auc}, ACC: :{acc} Loss Mean: {loss_mean} ")
+            print(f"[Test] number: {i}, AUC: {auc}, ACC: :{acc} Loss: {loss} ")
 
             # evaluation metrics
             aucs.append(auc)
-            loss_means.append(loss_mean)     
+            loss_mean.append(loss)     
             accs.append(acc)
             q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+        loss_means.append(np.mean(loss_mean))
 
 
     return aucs, loss_means, accs, q_accs, cnt
