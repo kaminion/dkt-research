@@ -3,10 +3,13 @@ import os
 import numpy as np 
 import torch 
 
+from tqdm import tqdm
+
 from torch.nn import Module, Parameter, Embedding, Linear, Dropout
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy
 from sklearn import metrics 
+from models.utils import cal_acc_class
 
 
 class DKVMN(Module):
@@ -109,73 +112,110 @@ class DKVMN(Module):
 
         return p, Mv
     
-    def train_model(self, train_loader, test_loader, num_epochs, opt, ckpt_path):
-        '''
-            Args:
-                train_loader: the PyTorch DataLoader instance for training
-                test_loader: the PyTorch DataLoader instance for test
-                num_epochs: the number of epochs
-                opt: the optimization to train this model
-                ckpt_path: the path to save this model's parameters
-        '''
-        aucs = []
-        loss_means = []  
+    
+def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epochs, batch_size, opt, ckpt_path):
+    '''
+        Args:
+            train_loader: the PyTorch DataLoader instance for training
+            test_loader: the PyTorch DataLoader instance for test
+            num_epochs: the number of epochs
+            opt: the optimization to train this model
+            ckpt_path: the path to save this model's parameters
+    '''
+    aucs = []
+    loss_means = []  
+    accs = []
+    q_accs = {}
+    
+    max_auc = 0
 
-        max_auc = 0
+    for i in tqdm(range(0, num_epochs)):
+        loss_mean = []
 
-        for i in range(0, num_epochs):
-            loss_mean = []
+        for data in train_loader:
+            # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+            model.train()
+            # 현재까지의 입력을 받은 뒤 다음 문제 예측
+            y, _ = model(q.long(), r.long())
 
-            for data in train_loader:
-                # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
-                q, r, _, _, m, bert_s, _, _, _ = data
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m)
+            t = torch.masked_select(r, m)
 
-                self.train()
-                
-                # 현재까지의 입력을 받은 뒤 다음 문제 예측
-                y, _ = self(q.long(), r.long())
+            opt.zero_grad()
+            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss.backward()
+            opt.step()
+            
+            loss_mean.append(loss.detach().cpu().numpy())
+        auc = metrics.roc_auc_score(
+            y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
+        )
+        bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+        acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                y = torch.masked_select(y, m)
-                t = torch.masked_select(r, m)
+        print(f"[Train] number: {i}, AUC: {auc}, ACC: {acc} ")
+    # Validation
+    with torch.no_grad():
+        for i, data in enumerate(valid_loader):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                opt.zero_grad()
-                loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
-                loss.backward()
-                opt.step()
+            model.eval()
 
-                loss_mean.append(loss.detach().cpu().numpy())
+            y, _ = model(q.long(), r.long())
 
-            with torch.no_grad():
-                for data in test_loader:
-                    q, r, _, _, m, bert_s, _, _, _ = data
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(r, m).detach().cpu()
 
-                    self.eval()
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
+            acc = metrics.accuracy_score(t.numpy(), bin_y)
+            loss = binary_cross_entropy(y, t)
+            
+            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
 
-                    y, _ = self(q.long(), r.long())
-
-                    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                    y = torch.masked_select(y, m).detach().cpu()
-                    t = torch.masked_select(r, m).detach().cpu()
-
-                    auc = metrics.roc_auc_score(
-                        y_true=t.numpy(), y_score=y.numpy()
+            if auc > max_auc : 
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        ckpt_path, "model.ckpt"
                     )
+                )
+                max_auc = auc
+    # Test
+    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
+    with torch.no_grad():
+        for i, data in enumerate(test_loader):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                    loss_mean = np.mean(loss_mean) # 실제 로스 평균값을 구함
-                    
-                    print(f"Epoch: {i}, AUC: {auc}, Loss Mean: {loss_mean} ")
+            model.eval()
 
-                    if auc > max_auc : 
-                        torch.save(
-                            self.state_dict(),
-                            os.path.join(
-                                ckpt_path, "model.ckpt"
-                            )
-                        )
-                        max_auc = auc
+            y, _ = model(q.long(), r.long())
 
-                    aucs.append(auc)
-                    loss_means.append(loss_mean)
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            q = torch.masked_select(q, m).detach().cpu()
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(r, m).detach().cpu()
 
-        return aucs, loss_means
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
+            acc = metrics.accuracy_score(t.numpy(), bin_y)
+            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+
+            print(f"[Test] number: {i}, AUC: {auc}, ACC: :{acc} Loss: {loss} ")
+
+            # evaluation metrics
+            aucs.append(auc)
+            loss_mean.append(loss)     
+            accs.append(acc)
+            q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+        loss_means.append(np.mean(loss_mean))
+
+
+    return aucs, loss_means, accs, q_accs, cnt

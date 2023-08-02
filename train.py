@@ -33,6 +33,7 @@ from models.dkt import dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
+from models.dkvmn import train_model as dkvmn_train
 
 from models.utils import collate_fn, collate_ednet
 
@@ -258,6 +259,7 @@ def main(model_name, dataset_name, use_wandb):
         train_model = dkt_train
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
+        train_model = dkvmn_train
     elif model_name == 'dkvmn+':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
         train_model = plus_train
