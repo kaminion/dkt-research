@@ -23,16 +23,22 @@ class DKT(Module):
         self.hidden_size = hidden_size
         
         # BERT for feature extraction
-        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        # self.at_emb_layer = Linear(768, self.emb_size)
-        # self.at2_emb_layer = Linear(512, self.emb_size)
+        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        self.at_emb_layer = Linear(768, self.emb_size)
+        self.at2_emb_layer = Linear(512, self.emb_size)
+        self.fusion_emb = Embedding(self.num_q * 2, self.emb_size)
+        self.fusion_layer = Linear(2 * self.emb_size, self.hidden_size)
+        
+        self.e_layer = Linear(self.hidden_size, self.emb_size)
+        self.a_layer = Linear(self.hidden_size, self.emb_size)
+        
 
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTM(
-            self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
+            3 * self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
-        self.out_layer = Linear(self.hidden_size, self.num_q)
+        self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
 
     def forward(self, q, r, at_s, at_t, at_m):
@@ -43,18 +49,25 @@ class DKT(Module):
 
         # Compressive sensing에 의하면 d차원에서의 k-sparse 신호는 모두 원복될 수 있음. (klogd에 변형을 가한 모든 값)
         # 여기서 d차원은 unique exercise이고(M), K-sparse는 원핫인코딩을 거치므로 1-sparse라고 할 수 있음.
-        x = self.interaction_emb(q + r * self.num_q) # r텐서를 num_q 만큼 곱해서 확장함
+        x = self.interaction_emb(q + self.num_q * r) # r텐서를 num_q 만큼 곱해서 확장함
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
-        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         
-        # h, _ = self.lstm_layer(torch.concat([x, at], dim=-1))
-        h, _ = self.lstm_layer(x)
+        # 퓨전 레이어
+        fl = self.fusion_emb(q + self.num_q * r)
+        fu = torch.relu(self.fusion_layer(torch.concat([fl, at], dim=-1)))
+        
+        e = torch.sigmoid(self.e_layer(fu))
+        a = torch.tanh(self.a_layer(fu))
+        
+        h = torch.concat([x, e, a], dim=-1)
+        h, _ = self.lstm_layer(h)
         y = self.out_layer(h)
         y = self.dropout_layer(y)
         y = torch.sigmoid(y)

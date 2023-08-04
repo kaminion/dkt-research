@@ -36,10 +36,10 @@ class SAKT(Module):
         self.P = Parameter(torch.Tensor(self.n, self.d))
         
         # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        self.at_emb_layer = Linear(768, self.d)
-        self.at2_emb_layer = Linear(512, self.d)
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # self.at_emb_layer = Linear(768, self.d)
+        # self.at2_emb_layer = Linear(512, self.d)
 
         kaiming_normal_(self.P)
 
@@ -75,7 +75,7 @@ class SAKT(Module):
                 attention module
         '''
 
-        x =  q + r * self.num_q # 원문에서는 문제 + 응답 * 총 문제 수라고 함.
+        x =  q + self.num_q * r # 원문에서는 문제 + 응답 * 총 문제 수라고 함.
 
         M = self.M(x).permute(1, 0, 2)
         E = self.E(qry).permute(1, 0, 2) # E도 x로 이루어진 행렬이어야 함. 수정 필요
@@ -87,13 +87,14 @@ class SAKT(Module):
         ).bool()
         
         # BERT, 양 차원 모양 바꾸기 
-        A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                       attention_mask=at_t,
-                       token_type_ids=at_m
-                       ).last_hidden_state)
-        A = self.at2_emb_layer(A.permute(0, 2, 1)).permute(2, 0, 1) # 어텐션에 들어가는 형식으로 바까줌
+        # A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        #                attention_mask=at_t,
+        #                token_type_ids=at_m
+        #                ).last_hidden_state)
+        # A = self.at2_emb_layer(A.permute(0, 2, 1)).permute(2, 0, 1) # 어텐션에 들어가는 형식으로 바까줌
 
-        M = M + P + A
+        # M = M + P + A
+        M = M + P
 
         S, attn_weights = self.attn(E, M, M, attn_mask=causal_mask)
         S = self.attn_dropout(S)

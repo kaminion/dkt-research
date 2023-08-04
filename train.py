@@ -34,6 +34,7 @@ from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
 from models.dkvmn import train_model as dkvmn_train
+from models.saint import train_model as saint_train
 
 from models.utils import collate_fn, collate_ednet
 
@@ -44,7 +45,7 @@ from sklearn.model_selection import KFold
 import wandb
 
 # seed 고정
-seed = 2023
+seed = 42
 #deterministic = True
 
 random.seed(seed)
@@ -271,6 +272,7 @@ def main(model_name, dataset_name, use_wandb):
         train_model = sakt_train
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
+        train_model = saint_train
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
     elif model_name == "auto":
