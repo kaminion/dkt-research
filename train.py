@@ -35,6 +35,7 @@ from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
 from models.dkvmn import train_model as dkvmn_train
 from models.saint import train_model as saint_train
+from models.akt import train_model as akt_train
 
 from models.utils import collate_fn, collate_ednet
 
@@ -275,6 +276,7 @@ def main(model_name, dataset_name, use_wandb):
         train_model = saint_train
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
+        train_model = akt_train
     elif model_name == "auto":
         model = torch.nn.DataParallel(AUTO(num_q=dataset.num_q, **model_config)).to(device)
         train_model = auto_train

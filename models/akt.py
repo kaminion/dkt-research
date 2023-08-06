@@ -72,7 +72,7 @@ class AKT(nn.Module):
             if p.size(0) == self.n_pid + 1 and self.n_pid > 0:
                 constant_(p, 0.)
 
-    def forward(self, q_data, qa_data, target, pid_data=None):
+    def forward(self, q_data, target, pid_data=None):
         # Batch first
         qa_data = (q_data + target)
         q_embed_data = self.q_embed(q_data) # BS, seqlen, d_model # c_ct
@@ -105,19 +105,14 @@ class AKT(nn.Module):
         # BS, seqlen, d_model
         # Pass to the decoder
         # output shae BS, seqlen, d_model or d_model // 2
-        d_output = self.model(q_embed_data, qa_embed_data) # 211x512
+        d_output = self.model(q_embed_data, qa_embed_data, pid_embed_data) # 211x512
 
         concat_q = torch.cat([d_output, q_embed_data], dim=-1)
-        output = self.out(concat_q)
-        # labels = target.reshape(-1)
-        # m = nn.Sigmoid()
-        #preds = (output.reshape(-1)) # logit 
-        preds = output.squeeze(-1)
-        # mask = labels > -0.9
-        # masked_labels = labels[mask].float()
-        # masked_preds = preds[mask]
-        # loss = nn.BCEWithLogitsLoss(reduction='none')
-        return torch.sigmoid(preds), c_reg_loss
+        output = self.out(concat_q).squeeze(-1)
+        m = nn.Sigmoid()
+        preds = m(output)
+
+        return preds, c_reg_loss
 
 
 class Architecture(nn.Module):
@@ -148,7 +143,7 @@ class Architecture(nn.Module):
                 for _ in range(n_blocks * 2)
             ])
     
-    def forward(self, q_embed_data, qa_embed_data):
+    def forward(self, q_embed_data, qa_embed_data, pid_embed_data):
         # target shape bs, seqlen
         
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
@@ -162,14 +157,14 @@ class Architecture(nn.Module):
 
         # encoder
         for block in self.blocks_1: # encode qas
-            y = block(mask=1, query=y, key=y, values=y)
+            y = block(mask=1, query=y, key=y, values=y, pdiff=pid_embed_data)
         flag_first = True
         for block in self.blocks_2:
             if flag_first: # peek current question 
-                x = block(mask=1, query=x, key=x, values=x, apply_pos=False)
+                x = block(mask=1, query=x, key=x, values=x, apply_pos=False,  pdiff=pid_embed_data)
                 flag_first = False
             else: # dont peek current response
-                x = block(mask=0, query=x, key=x, values=y, apply_pos=True)
+                x = block(mask=0, query=x, key=x, values=y, apply_pos=True,  pdiff=pid_embed_data)
                 flag_first = True
         return x
 
@@ -201,7 +196,7 @@ class TransformerLayer(nn.Module):
         self.layer_norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, mask, query, key, values, apply_pos=True):
+    def forward(self, mask, query, key, values, apply_pos=True, pdiff=None):
         '''
             Input
 
@@ -218,12 +213,12 @@ class TransformerLayer(nn.Module):
         if mask == 0: # If0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=True
+                query, key, values, mask=src_mask, zero_pad=True, pdiff=pdiff
             )
         else:
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
-                query, key, values, mask=src_mask, zero_pad=False
+                query, key, values, mask=src_mask, zero_pad=False, pdiff=pdiff
             )
 
         query = query + self.dropout1((query2))
@@ -275,7 +270,7 @@ class MultiHeadAttention(nn.Module):
                 constant_(self.q_linear.bias, 0.)
             constant_(self.out_proj.bias, 0.)
     
-    def forward(self, q, k, v, mask, zero_pad):
+    def forward(self, q, k, v, mask, zero_pad, pdiff=None):
 
         bs = q.size(0)
         
@@ -295,8 +290,9 @@ class MultiHeadAttention(nn.Module):
         
         # calculate attention using function we will define next
         gammas = self.gammas
+        
         scores = attention(q, k, v, self.d_k, 
-                           mask, self.dropout, zero_pad, gammas)
+                           mask, self.dropout, zero_pad, gammas, pdiff)
         
         # concatenate heads and put through final linear layer 
         concat = scores.transpose(1, 2).contiguous()\
@@ -306,7 +302,7 @@ class MultiHeadAttention(nn.Module):
         return output
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
+def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None, pdiff=None):
     """
         This is called by Multi-head attention object to find the values.
     """
@@ -320,16 +316,16 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     x2 = x1.transpose(0, 1).contiguous()
 
     with torch.no_grad():
-        scores_ = scores.masked_fill(mask == 0, -1e32)
+        scores_ = scores.masked_fill(mask.cuda() == 0, -1e32)
         scores_ = F.softmax(scores_, dim=-1)
         # scores_ = scores_ * mask.float().cuda()
-        scores_ = scores_ * mask.float()
+        scores_ = scores_ * mask.float().cuda()
         distcum_scores = torch.cumsum(scores_, dim=-1)
         disttotal_scores = torch.sum(
             scores_, dim=-1, keepdim=True 
         ) # bs, 8, s1, 1
         # position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
-        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor) # 1, 1, seqlen, seqlen
+        position_effect = torch.abs(x1-x2)[None, None, :, :].type(torch.FloatTensor).cuda() # 1, 1, seqlen, seqlen
 
         # bs, 8, s1, s1 positive distance
         dist_scores = torch.clamp(
@@ -338,13 +334,22 @@ def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
         dist_scores = dist_scores.sqrt().detach()
     m = nn.Softplus()
     gamma = -1. * m(gamma).unsqueeze(0) # 1, 8, 1, 1
-    # Now after do exp(gamma * distance) and the clamp to 1e-5 to 1e5
-    total_effect = torch.clamp(torch.clamp(
-        (dist_scores * gamma).exp(), min=1e-5
-    ), max=1e5)
+    
+    if pdiff == None:
+        # Now after do exp(gamma * distance) and the clamp to 1e-5 to 1e5
+        total_effect = torch.clamp(torch.clamp(
+            (dist_scores * gamma).exp(), min=1e-5
+        ), max=1e5)
+    else: 
+        diff = pdiff.unsqueeze(1).expand(pdiff.shape[0], dist_scores.shape[1], pdiff.shape[1], pdiff.shape[2])
+        diff = diff.sigmoid().exp()
+        total_effect = torch.clamp(torch.clamp(
+            (dist_scores * gamma).exp(), min=1e-5
+        ), max=1e5)
+        
     scores = scores * total_effect
 
-    scores.masked_fill_(mask == 0, -1e32)
+    scores.masked_fill_(mask.cuda() == 0, -1e32)
     scores = F.softmax(scores, dim=-1)
     if zero_pad:
         # pad_zero = torch.zeros(bs, head, 1, seqlen).cuda()
@@ -380,14 +385,14 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+            y, preloss = model(q.long(), r.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
             t = torch.masked_select(r, m)
 
             opt.zero_grad()
-            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss = binary_cross_entropy(y, t) + preloss[0] # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
             loss.backward()
             opt.step()
             
@@ -406,7 +411,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+            y, preloss = model(q.long(), r.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m).detach().cpu()
@@ -417,7 +422,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
-            loss = binary_cross_entropy(y, t)
+            loss = binary_cross_entropy(y, t) + preloss[0]
             
             print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
 
@@ -437,7 +442,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+            y, preloss = model(q.long(), r.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
@@ -449,7 +454,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
-            loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss = binary_cross_entropy(y, t) + preloss[0] # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
             print(f"[Test] number: {i}, AUC: {auc}, ACC: :{acc} Loss: {loss} ")
 

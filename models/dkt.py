@@ -23,20 +23,20 @@ class DKT(Module):
         self.hidden_size = hidden_size
         
         # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        self.at_emb_layer = Linear(768, self.emb_size)
-        self.at2_emb_layer = Linear(512, self.emb_size)
-        self.fusion_emb = Embedding(self.num_q * 2, self.emb_size)
-        self.fusion_layer = Linear(2 * self.emb_size, self.hidden_size)
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # self.at_emb_layer = Linear(768, self.emb_size)
+        # self.at2_emb_layer = Linear(512, self.emb_size)
+        # self.fusion_emb = Embedding(self.num_q * 2, self.emb_size)
+        # self.fusion_layer = Linear(2 * self.emb_size, self.hidden_size)
         
-        self.e_layer = Linear(self.hidden_size, self.emb_size)
-        self.a_layer = Linear(self.hidden_size, self.emb_size)
+        # self.e_layer = Linear(self.hidden_size, self.emb_size)
+        # self.a_layer = Linear(self.hidden_size, self.emb_size)
         
 
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTM(
-            3 * self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
+            self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
@@ -53,21 +53,21 @@ class DKT(Module):
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
-        at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                       attention_mask=at_t,
-                       token_type_ids=at_m
-                       ).last_hidden_state)
-        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        #                attention_mask=at_t,
+        #                token_type_ids=at_m
+        #                ).last_hidden_state)
+        # at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         
         # 퓨전 레이어
-        fl = self.fusion_emb(q + self.num_q * r)
-        fu = torch.relu(self.fusion_layer(torch.concat([fl, at], dim=-1)))
+        # fl = self.fusion_emb(q + self.num_q * r)
+        # fu = torch.relu(self.fusion_layer(torch.concat([fl, at], dim=-1)))
         
-        e = torch.sigmoid(self.e_layer(fu))
-        a = torch.tanh(self.a_layer(fu))
+        # e = torch.sigmoid(self.e_layer(fu))
+        # a = torch.tanh(self.a_layer(fu))
         
-        h = torch.concat([x, e, a], dim=-1)
-        h, _ = self.lstm_layer(h)
+        # h = torch.concat([x, e, a], dim=-1)
+        h, _ = self.lstm_layer(x)
         y = self.out_layer(h)
         y = self.dropout_layer(y)
         y = torch.sigmoid(y)
@@ -125,42 +125,41 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
 
         print(f"[Train] epoch: {i}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
 
-    with torch.no_grad():
-        loss_mean = []
-        for i, data in enumerate(valid_loader):
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+        with torch.no_grad():
+            loss_mean = []
+            for i, data in enumerate(valid_loader):
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            model.eval()
-            
-            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
-            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+                model.eval()
+                
+                y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
-            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(rshft_seqs, m).detach().cpu()
-            h = torch.masked_select(hint_seqs, m).detach().cpu()
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-            non_roc, sen_roc = calculate_dis_impact(y, t, h)
+                non_roc, sen_roc = calculate_dis_impact(y, t, h)
 
-            auc = metrics.roc_auc_score(
-                y_true=t.numpy(), y_score=y.numpy()
-            )
-            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-
-            loss = binary_cross_entropy(y, t) 
-            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
-
-            if auc > max_auc : 
-                torch.save(
-                    model.state_dict(),
-                    os.path.join(
-                        ckpt_path, "model.ckpt"
-                    )
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
                 )
-                max_auc = auc
+                bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+                acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-            loss_mean.append(loss)
+                loss = binary_cross_entropy(y, t) 
+                print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    max_auc = auc
+
 
     # 실제 성능측정
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
