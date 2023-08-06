@@ -158,36 +158,36 @@ def sakt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs
         loss_mean = np.mean(loss_mean)
 
         print(f"[Train] number: {i}, AUC: {auc}, ACC: {acc} Loss Mean: {loss_mean}")
-    # Validation
-    with torch.no_grad():
-        for i, data in enumerate(valid_loader):
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+        # Validation
+        with torch.no_grad():
+            for i, data in enumerate(valid_loader):
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            model.eval()
+                model.eval()
 
-            y, _ = model(q.long(), r.long(), qshft_seqs.long(), bert_s, bert_t, bert_m)
+                y, _ = model(q.long(), r.long(), qshft_seqs.long(), bert_s, bert_t, bert_m)
 
-            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
 
-            auc = metrics.roc_auc_score(
-                y_true=t.numpy(), y_score=y.numpy()
-            )
-            bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
-            acc = metrics.accuracy_score(t.numpy(), bin_y)
-            loss = binary_cross_entropy(y, t)
-            
-            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
-
-            if auc > max_auc : 
-                torch.save(
-                    model.state_dict(),
-                    os.path.join(
-                        ckpt_path, "model.ckpt"
-                    )
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
                 )
-                max_auc = auc
+                bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
+                acc = metrics.accuracy_score(t.numpy(), bin_y)
+                loss = binary_cross_entropy(y, t)
+                
+                print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
+
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    max_auc = auc
     # Test
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     with torch.no_grad():
