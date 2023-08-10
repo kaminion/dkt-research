@@ -29,7 +29,7 @@ class AKT(nn.Module):
             d_ff: dimension for fully connected net inside the basic block
     '''
     def __init__(self, n_question, n_pid, d_model=256, n_blocks=1,
-                 kq_same=True, dropout=0.05, model_type='akt', final_fc_dim=512, n_heads=8, d_ff=1024, l2=1e-4,
+                 kq_same=True, dropout=0.05, model_type='akt', final_fc_dim=512, n_heads=8, d_ff=256, l2=1e-5,
                  separate_qa=False
                 ):
         super(AKT, self).__init__()
@@ -74,23 +74,24 @@ class AKT(nn.Module):
 
     def forward(self, q_data, target, pid_data=None):
         # Batch first
-        qa_data = (q_data + target)
+        qa_data = q_data + self.n_question * target
         q_embed_data = self.q_embed(q_data) # BS, seqlen, d_model # c_ct
         if self.separate_qa:
             # BS, seqlen, d_model #f_(ct, rt)
             qa_embed_data = self.qa_embed(qa_data)
         else:
-            qa_data = (qa_data - q_data) // self.n_question # rt 
+            # qa_data = (qa_data - q_data) // self.n_question # rt 
             # BS, seqlen, d_model # c_ct + g_rt = e_(ct, rt)
-            qa_embed_data = self.qa_embed(qa_data) + q_embed_data
+            qa_embed_data = self.qa_embed(target) + q_embed_data
         
         if self.n_pid > 0:
             q_embed_diff_data = self.q_embed_diff(q_data) # d_ct
             pid_embed_data = self.difficult_param(pid_data) # uq
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data # uq * d_ct + c_ct
+                
             qa_embed_diff_data = self.qa_embed_diff(
-                qa_data
+                target # 원래 qa_data
             ) # f_(ct, rt) or #h_rt
             if self.separate_qa:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
@@ -392,7 +393,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             t = torch.masked_select(r, m)
 
             opt.zero_grad()
-            loss = binary_cross_entropy(y, t) + preloss[0] # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss = binary_cross_entropy(y, t) + preloss.item() # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
             loss.backward()
             opt.step()
             
@@ -422,7 +423,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
                 )
                 bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
                 acc = metrics.accuracy_score(t.numpy(), bin_y)
-                loss = binary_cross_entropy(y, t) + preloss[0]
+                loss = binary_cross_entropy(y, t) + preloss.item() # 원래는 preloss[0]으로 사용가능했음 (신버전 기준)
                 
                 print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc} Loss: {loss} ")
 
@@ -454,13 +455,13 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
-            loss = binary_cross_entropy(y, t) + preloss[0] # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+            loss = binary_cross_entropy(y, t) + preloss.item() # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
             print(f"[Test] number: {i}, AUC: {auc}, ACC: :{acc} Loss: {loss} ")
 
             # evaluation metrics
             aucs.append(auc)
-            loss_mean.append(loss)     
+            loss_mean.append(loss.detach().cpu().numpy())     
             accs.append(acc)
             q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
         loss_means.append(np.mean(loss_mean))
