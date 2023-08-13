@@ -189,9 +189,9 @@ def train_model(model, train_loader, test_loader, exp_loader, num_q, num_epochs,
 
 # main program
 def main(model_name, dataset_name, use_wandb):
-    if not os.path.isdir("ckpts"):
-        os.mkdir("ckpts")
     KAKAO_CKPTS = "/app/outputs/"
+    if not os.path.isdir(f"{KAKAO_CKPTS}ckpts"):
+        os.mkdir("ckpts")
     ckpt_path = os.path.join(f"{KAKAO_CKPTS}ckpts", model_name)
     if not os.path.isdir(ckpt_path):
         os.mkdir(ckpt_path)
