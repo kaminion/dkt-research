@@ -7,7 +7,10 @@ import pandas as pd
 from torch.utils.data import Dataset
 from models.utils import match_seq_len
 
-DATASET_DIR = "datasets/ASSIST2009/"
+# DATASET 변경이슈 (카카오 서버)
+KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
+DATASET_DIR = f"{KAKAO_DATASET_DIR}/ASSIST2009/" # 원래는 datasets/ASSIST2009/
+
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
 AT_SEQ_PICKLE = "at_seqs.pkl"
