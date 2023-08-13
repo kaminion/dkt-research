@@ -8,8 +8,9 @@ from tqdm import tqdm
 import os
 import pickle
 
-
-DATASET_DIR = "datasets/EDNET01/"
+KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
+DATASET_DIR = f"{KAKAO_DATASET_DIR}/EDNET01/" 
+# DATASET_DIR = "datasets/EDNET01/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
 U_SEQ_PICKLE = "u_seqs.pkl"
