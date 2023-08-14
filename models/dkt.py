@@ -39,12 +39,7 @@ class DKT(Module):
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
-        
-        # 실제적으로 퓨전 수행하는 레이어
-        self.attn = MultiheadAttention(
-            self.hidden_size, 4, dropout=0.2
-        )
-        
+
 
     def forward(self, q, r, at_s, at_t, at_m):
         '''
