@@ -40,10 +40,10 @@ class SAKT(Module):
         self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         self.at_emb_layer = Linear(768, self.d)
         self.at2_emb_layer = Linear(512, self.d)
-        self.v_emb_layer = Linear(self.emb_size * 2, self.hidden_size)
+        self.v_emb_layer = Linear(self.d * 2, self.d)
         
-        self.e_layer = Linear(self.hidden_size, self.emb_size)
-        self.a_layer = Linear(self.hidden_size, self.emb_size)
+        self.e_layer = Linear(self.d, self.d)
+        self.a_layer = Linear(self.d, self.d)
 
 
         kaiming_normal_(self.P)
