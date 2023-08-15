@@ -98,7 +98,7 @@ class SAKT(Module):
                        ).last_hidden_state)
         A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
         print(M.shape, A.shape)
-        V = torch.relu(self.v_emb_layer(torch.concat([M, A.permute(0, 2, 1)], dim=-1)))
+        V = torch.relu(self.v_emb_layer(torch.concat([M.permute(1, 0, 2), A], dim=-1))).permute(1, 0, 2)
         print(V.shape, M.shape, P.shape)
         M = M + P + V
         
