@@ -44,7 +44,7 @@ class SAINT(Module):
         bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         self.at_emb_layer = Linear(768, self.d)
-        self.at2_emb_layer = Linear(512, self.d)
+        self.at2_emb_layer = Linear(512, 100)
         self.v_emb_layer = Linear(self.d * 2, self.d)
         
         self.e_layer = Linear(self.d, self.d)
