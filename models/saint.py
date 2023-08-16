@@ -9,6 +9,7 @@ from torch.nn.init import normal_
 from torch.nn.functional import binary_cross_entropy
 from sklearn import metrics 
 from models.utils import cal_acc_class
+from transformers import BertModel, BertConfig
 
 
 class SAINT(Module):
@@ -38,10 +39,20 @@ class SAINT(Module):
             num_decoder_layers=self.num_tr_layers,
             dropout=self.dropout
         )
+        
+        # BERT for feature extraction
+        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        self.at_emb_layer = Linear(768, self.d)
+        self.at2_emb_layer = Linear(512, self.d)
+        self.v_emb_layer = Linear(self.d * 2, self.d)
+        
+        self.e_layer = Linear(self.d, self.d)
+        self.a_layer = Linear(self.d, self.d)
 
         self.pred = Linear(self.d, 1)
 
-    def forward(self, q, r):
+    def forward(self, q, r, at_s, at_t, at_m):
         batch_size = r.shape[0]
 
         E = self.E(q).permute(1, 0, 2)
@@ -49,11 +60,19 @@ class SAINT(Module):
         S = self.S.repeat(batch_size, 1).unsqueeze(0)
         R = torch.cat([S, R], dim=0)
 
+        # BERT, 양 차원 모양 바꾸기 
+        A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
+        V = torch.relu(self.v_emb_layer(torch.concat([E.permute(1, 0, 2), A], dim=-1))).permute(1, 0, 2)
+
         P = self.P.unsqueeze(1)
 
         mask = self.transformer.generate_square_subsequent_mask(self.n).cuda()
         R = self.transformer(
-            E + P, R + P, mask, mask, mask
+            E + P + V, R + P + V, mask, mask, mask
         )
         R = R.permute(1, 0, 2)
 
@@ -86,7 +105,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y = model(q.long(), r.long())
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -112,7 +131,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
                 model.eval()
 
-                y = model(q.long(), r.long())
+                y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -143,7 +162,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y = model(q.long(), r.long())
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()

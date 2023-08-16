@@ -50,6 +50,13 @@
         "num_tr_layers": 4,
         "dropout": 0.6
     },
+    "saint-":{
+        "n": 100,
+        "d": 512,
+        "num_attn_heads": 4,
+        "num_tr_layers": 4,
+        "dropout": 0.6
+    },
     "auto": {
         "seq_len": 100,
         "emb_size": 100,
