@@ -3,11 +3,11 @@ import pickle
 import numpy as np 
 import pandas as pd
 
-model_name = 'akt'
+model_name = 'dkt-'
 
 abs_path = f'.{os.path.sep}ckpts{os.path.sep}{model_name}{os.path.sep}'
-path = f'ASSIST2009{os.path.sep}'
-file_name = 'aucs.pkl'
+path = f'ASSIST2012{os.path.sep}'
+file_name = 'aucs_2023.pkl'
 
 # TEST DATA SET 에만 수행하는 것이므로..
 # ASSISTMENT 2009: 52, ASSISTMENT 2012: 379

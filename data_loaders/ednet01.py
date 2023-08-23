@@ -10,6 +10,8 @@ import pickle
 
 KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
 DATASET_DIR = f"{KAKAO_DATASET_DIR}/EDNET01/" 
+# KAKAO 때문에 추가
+SAVE_DIR = "/app/outputs/dataset/dkt-dataset"
 # DATASET_DIR = "datasets/EDNET01/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
@@ -28,6 +30,7 @@ class EdNet01(Dataset):
         super().__init__()
 
         self.dataset_dir = dataset_dir
+        self.save_dir = SAVE_DIR
 
         # 미리 피클에 담겨진 파일들 로딩
         if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)) & os.path.exists(os.path.join(self.dataset_dir, 'Ednet01.csv')):
@@ -106,16 +109,16 @@ class EdNet01(Dataset):
             concate_csv = pd.concat([concate_csv, u_df])
             
         # 피클에 파일 저장
-        with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
+        with open(os.path.join(self.save_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(qid_seqs, f)
-        with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "wb") as f:
+        with open(os.path.join(self.save_dir, R_SEQ_PICKLE), "wb") as f:
             pickle.dump(r_seqs, f)
-        with open(os.path.join(self.dataset_dir, U_SEQ_PICKLE), "wb") as f:
+        with open(os.path.join(self.save_dir, U_SEQ_PICKLE), "wb") as f:
             pickle.dump(u_seqs, f)
-        with open(os.path.join(self.dataset_dir, T_SEQ_PICKLE), "wb") as f:
+        with open(os.path.join(self.save_dir, T_SEQ_PICKLE), "wb") as f:
             pickle.dump(t_seqs, f)
 
         # 새로 만든 파일 저장
-        concate_csv.to_csv(os.path.join(self.dataset_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
+        concate_csv.to_csv(os.path.join(self.save_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
         
         return qid_seqs, r_seqs, u_seqs, t_seqs
