@@ -35,9 +35,9 @@ class DKT(Module):
 
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTM(
-            self.emb_size * 2, self.hidden_size, batch_first=True # concat 시 emb_size * 2
+            self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
-        self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
+        self.out_layer = Linear(self.hidden_size * 2, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
 
 
@@ -60,12 +60,12 @@ class DKT(Module):
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
 
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        e = torch.sigmoid(self.e_layer(v))
-        a = torch.tanh(self.a_layer(v))
+        # e = torch.sigmoid(self.e_layer(v))
+        # a = torch.tanh(self.a_layer(v))
         
-        h, _ = self.lstm_layer(torch.concat([e, a], dim=-1))
+        h, _ = self.lstm_layer(x)
         
-        y = self.out_layer(h)
+        y = self.out_layer(torch.concat([h, v], dim=-1))
         y = self.dropout_layer(y)
         y = torch.sigmoid(y)
 

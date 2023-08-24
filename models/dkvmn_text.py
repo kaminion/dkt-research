@@ -100,8 +100,9 @@ class SUBJ_DKVMN(Module):
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
+        # 그래서 Mv0 맨 앞에 차원 하나 추가하고 추가한 차원에 batch_size 곱해줌. 나머지는 메모리사이즈 * 1, 임베딩 공간 * 1 해줌.
         Mvt = self.Mv0.unsqueeze(0).repeat(batch_size, 1, 1) # parameter로 메모리 사이즈만큼, 그리고 임베딩 공간만큼 구해줬음
-        Mv = [Mvt]
+        Mv = [Mvt] # 맨 첫번째 상태 만들어줌. shape: [1, batch size, memory_size, emb_size] 
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수

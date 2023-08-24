@@ -11,7 +11,7 @@ import pickle
 KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
 DATASET_DIR = f"{KAKAO_DATASET_DIR}/EDNET01/" 
 # KAKAO 때문에 추가
-SAVE_DIR = "/app/outputs/dataset/dkt-dataset"
+SAVE_DIR = "/app/outputs/"
 # DATASET_DIR = "datasets/EDNET01/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
