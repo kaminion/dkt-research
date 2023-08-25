@@ -24,6 +24,8 @@ from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
 from models.sakt import SAKT
 from models.saint import SAINT
+from models.saint_front import SAINT as SAINT_FRONT
+from models.saint_rear import SAINT as SAINT_REAR
 from models.auto import AUTO
 from models.mekt import MEKT
 from models.dirt import DeepIRT
@@ -39,6 +41,8 @@ from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
 from models.dkvmn import train_model as dkvmn_train
 from models.saint import train_model as saint_train
+from models.saint_front import train_model as saint_front_train
+from models.saint_rear import train_model as saint_rear_train
 from models.akt import train_model as akt_train
 
 from models.utils import collate_fn, collate_ednet
@@ -155,6 +159,12 @@ def main(model_name, dataset_name, use_wandb):
     elif model_name == 'saint-':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
         train_model = saint_train
+    elif model_name == 'saint-':
+        model = torch.nn.DataParallel(SAINT_FRONT(dataset.num_q, **model_config)).to(device)
+        train_model = saint_front_train
+    elif model_name == "saint+":
+        model = torch.nn.DataParallel(SAINT_REAR(dataset.num_q, **model_config)).to(device)
+        train_model = saint_rear_train
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
         train_model = akt_train

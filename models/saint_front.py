@@ -61,17 +61,18 @@ class SAINT(Module):
         R = torch.cat([S, R], dim=0)
 
         # BERT, 양 차원 모양 바꾸기 
-        # A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
+        A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
+        V = torch.relu(self.v_emb_layer(torch.concat([E.permute(1, 0, 2), A.permute(0, 2, 1)], dim=-1))).permute(1, 0, 2)
 
         P = self.P.unsqueeze(1)
 
         mask = self.transformer.generate_square_subsequent_mask(self.n).cuda()
         R = self.transformer(
-            E + P, R + P, mask, mask, mask
+            E + P + V, R + P + V, mask, mask, mask
         )
         R = R.permute(1, 0, 2)
 
