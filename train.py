@@ -17,6 +17,8 @@ from data_loaders.assist2012 import ASSIST2012
 from data_loaders.ednet01 import EdNet01
 
 # 모델 추가
+from models.dkt_rear import DKT as DKT_REAR
+from models.dkt_front import DKT as DKT_FRONT
 from models.dkt import DKT
 from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
@@ -29,6 +31,8 @@ from models.qakt import QAKT
 from models.akt import AKT
 
 # 모델에 따른 train
+from models.dkt_rear import dkt_train as dk_rear_train
+from models.dkt_front import dkt_train as dk_front_train
 from models.dkt import dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
@@ -127,9 +131,15 @@ def main(model_name, dataset_name, use_wandb):
     
     ## 가변 벡터이므로 **
     train_model = None
-    if model_name == "dkt+":
+    if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
         train_model = dkt_train
+    if model_name == "dkt-":
+        model = torch.nn.DataParallel(DKT_FRONT(dataset.num_q, **model_config)).to(device)
+        train_model = dk_front_train
+    if model_name == "dkt+":
+        model = torch.nn.DataParallel(DKT_REAR(dataset.num_q, **model_config)).to(device)
+        train_model = dk_rear_train
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
         train_model = dkvmn_train

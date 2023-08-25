@@ -37,7 +37,7 @@ class DKT(Module):
         self.lstm_layer = LSTM(
             self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
-        self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
+        self.out_layer = Linear(self.hidden_size * 2, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
 
 
@@ -53,19 +53,19 @@ class DKT(Module):
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
-        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
 
-        # v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
+        v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         # e = torch.sigmoid(self.e_layer(v))
         # a = torch.tanh(self.a_layer(v))
         
         h, _ = self.lstm_layer(x)
         
-        y = self.out_layer(h)
+        y = self.out_layer(torch.concat([h, v], dim=-1))
         y = self.dropout_layer(y)
         y = torch.sigmoid(y)
 

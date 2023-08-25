@@ -35,7 +35,7 @@ class DKT(Module):
 
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTM(
-            self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
+            self.emb_size * 2, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
@@ -53,17 +53,17 @@ class DKT(Module):
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
-        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+                       attention_mask=at_t,
+                       token_type_ids=at_m
+                       ).last_hidden_state)
+        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
 
-        # v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        # e = torch.sigmoid(self.e_layer(v))
-        # a = torch.tanh(self.a_layer(v))
+        v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
+        e = torch.sigmoid(self.e_layer(v))
+        a = torch.tanh(self.a_layer(v))
         
-        h, _ = self.lstm_layer(x)
+        h, _ = self.lstm_layer(torch.concat([e, a], dim=-1))
         
         y = self.out_layer(h)
         y = self.dropout_layer(y)
