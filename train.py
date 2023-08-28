@@ -156,7 +156,7 @@ def main(model_name, dataset_name, use_wandb):
     elif model_name == 'sakt-':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
         train_model = sakt_train
-    elif model_name == 'saint-':
+    elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
         train_model = saint_train
     elif model_name == 'saint-':
