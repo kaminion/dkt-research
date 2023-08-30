@@ -23,6 +23,8 @@ from models.dkt import DKT
 from models.dkvmn import DKVMN
 from models.dkvmn_text import SUBJ_DKVMN
 from models.sakt import SAKT
+from models.sakt_front import SAKT as SAKT_FRONT
+from models.sakt_rear import SAKT as SAKT_REAR
 from models.saint import SAINT
 from models.saint_front import SAINT as SAINT_FRONT
 from models.saint_rear import SAINT as SAINT_REAR
@@ -39,6 +41,8 @@ from models.dkt import dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
+from models.sakt_front import sakt_train as sakt_front_train
+from models.saint_rear import sakt_train as sakt_rear_train
 from models.dkvmn import train_model as dkvmn_train
 from models.saint import train_model as saint_train
 from models.saint_front import train_model as saint_front_train
@@ -153,9 +157,15 @@ def main(model_name, dataset_name, use_wandb):
     elif model_name == 'dkvmn-':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, **model_config)).to(device)
         train_model = plus_train
-    elif model_name == 'sakt-':
+    elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
         train_model = sakt_train
+    elif model_name == 'sakt-':
+        model = torch.nn.DataParallel(SAKT_FRONT(dataset.num_q, **model_config)).to(device)
+        train_model = sakt_front_train
+    elif model_name == 'sakt+':
+        model = torch.nn.DataParallel(SAKT_REAR(dataset.num_q, **model_config)).to(device)
+        train_model = sakt_rear_train
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
         train_model = saint_train

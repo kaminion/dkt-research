@@ -97,7 +97,8 @@ class SAKT(Module):
                        token_type_ids=at_m
                        ).last_hidden_state)
         A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
-        M = M + P
+        V = torch.relu(self.v_emb_layer(torch.concat([M.permute(1, 0, 2), A], dim=-1))).permute(1, 0, 2)
+        M = M + P + V
         
         S, attn_weights = self.attn(E, M, M, attn_mask=causal_mask)
         S = self.attn_dropout(S)
@@ -107,6 +108,8 @@ class SAKT(Module):
 
         S = self.attn_layer_norm(S + M + E) # Residual Connection and Layer normalization.
         
+
+
         # 주관식 문제도 포함 시키기, 포함시킨 뒤 Residual에도 추가
         F = self.FFN(S)
         F = self.FFN_layer_norm(F + S) # Residual Connection and Layer normalization.

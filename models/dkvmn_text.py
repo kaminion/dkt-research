@@ -145,7 +145,7 @@ class SUBJ_DKVMN(Module):
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
 
-        return p, Mv
+        return p, Mv, w
     
 def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epochs, batch_size, opt, ckpt_path):
     '''
