@@ -42,7 +42,7 @@ from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.sakt import sakt_train
 from models.sakt_front import sakt_train as sakt_front_train
-from models.saint_rear import sakt_train as sakt_rear_train
+from models.sakt_rear import sakt_train as sakt_rear_train
 from models.dkvmn import train_model as dkvmn_train
 from models.saint import train_model as saint_train
 from models.saint_front import train_model as saint_front_train
