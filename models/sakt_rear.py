@@ -108,10 +108,10 @@ class SAKT(Module):
         S = self.attn_layer_norm(S + M + E) # Residual Connection and Layer normalization.
 
         # 주관식 문제도 포함 시키기, 포함시킨 뒤 Residual에도 추가        
-        V = torch.relu(self.v_emb_layer(torch.concat([M.permute(1, 0, 2), A], dim=-1))).permute(1, 0, 2)
+        V = torch.relu(self.v_emb_layer(torch.concat([S, A], dim=-1))).permute(1, 0, 2)
 
-        F = self.FFN(S)
-        F = self.FFN_layer_norm(F + S) # Residual Connection and Layer normalization.
+        F = self.FFN(S + V)
+        F = self.FFN_layer_norm(F + S + V) # Residual Connection and Layer normalization.
 
         p = torch.sigmoid(self.pred(F)).squeeze(-1)
 
