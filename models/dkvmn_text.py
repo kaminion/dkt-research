@@ -171,7 +171,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+            y, Mv, w = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
@@ -197,7 +197,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
                 model.eval()
 
-                y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+                y, Mv, w = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -228,7 +228,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
             model.eval()
 
-            y, _ = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
+            y, Mv, w = model(q.long(), r.long(), bert_s, bert_t, bert_m, q2diff_seqs.long(), pid_seqs.long())
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
