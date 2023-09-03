@@ -21,11 +21,11 @@
     },
     "dkvmn":{
         "dim_s": 100,
-        "size_m": 50
+        "size_m": 100
     },
     "dkvmn+":{
         "dim_s": 100,
-        "size_m": 50
+        "size_m": 100
     },
     "dkvmn-":{
         "dim_s": 100,
