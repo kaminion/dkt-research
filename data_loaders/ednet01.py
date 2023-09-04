@@ -87,18 +87,15 @@ class EdNet01(Dataset):
         for file in tqdm(file_list, leave=False):
             u_id = f'{file}'
             u_df = pd.read_csv(f"{self.dataset_dir}/KT1/{file}")
-            u_df['correct'] = -1
+            u_df['correct'] = 0
             # 가끔 안되는게 있어서 타입 변경
             u_df['question_id'] = u_df['question_id'].astype(str)
             
-            # 1. q_df에서 먼저 u_df와 일치하여 필터링 되는 것 선정
-            qu_df = q_df.loc[q_df['question_id'].isin(u_df['question_id'])].copy()
-            # 2. 그 후 정답 값을 비교하여 1, 0 판정을 내림
-            condition = [ (u_df['question_id'].isin(qu_df['question_id'])) & (u_df['user_answer'].isin(qu_df['correct_answer'])) ]
-            choice = [1]
-            
-            u_df['correct'] = np.select(condition, choice, 0)
-            
+            uids = u_df['question_id']
+            for u_question_id in uids:
+                # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
+                u_df.loc[(q_df['question_id'] == u_question_id) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
+                
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(np.array([u_id]))
 
