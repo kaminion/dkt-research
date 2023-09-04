@@ -5,3 +5,7 @@ wandb*
 **/__pycache__/
 *.out
 /FeatureImportanceDL
+/dkvmn*
+/sakt*
+/saint*
+/dkt*
