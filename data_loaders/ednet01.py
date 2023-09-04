@@ -94,6 +94,7 @@ class EdNet01(Dataset):
             uids = u_df['question_id']
             # 각 udf 순회
             for u_row in u_df:
+                print(u_row)
                 print(u_row['question_id'] == q_df['question_id']," === : === ", q_df['question_id'])
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
                 u_row.loc[(q_df['question_id'] == u_row['question_id']) & (q_df['correct_answer'] == u_row['user_answer']), 'correct'] = 1
