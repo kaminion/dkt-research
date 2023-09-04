@@ -94,7 +94,7 @@ class EdNet01(Dataset):
             uids = u_df['question_id']
             for u_question_id in uids:
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
-                u_df.loc[(q_df['question_id'] == u_question_id) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
+                u_df[u_question_id].loc[(q_df['question_id'] == u_question_id) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
                 
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(np.array([u_id]))
