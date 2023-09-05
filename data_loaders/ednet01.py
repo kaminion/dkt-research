@@ -110,7 +110,7 @@ class EdNet01(Dataset):
                 print(f"udf: correctness: {uc}")
                 
                 # 2. q_df 문항번호 체크
-                qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer'].values
+                qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer'].values[0]
                 print(f"qdf: correctness: {qc}")
                 
                 
