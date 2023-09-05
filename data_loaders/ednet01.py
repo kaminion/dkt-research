@@ -74,7 +74,7 @@ class EdNet01(Dataset):
         t_seqs = []
 
         # 새로운 csv 파일 저장을 위한 딕셔너리 생성
-        concate_csv = pd.DataFrame()
+        new_csv = pd.DataFrame()
         
         # 파일 전체적으로 읽기
         file_list = os.listdir(f"{self.dataset_dir}/KT1") # 파일리스트 로드
@@ -87,6 +87,7 @@ class EdNet01(Dataset):
         for file in tqdm(file_list):
             u_id = f'{file}'
             u_df = pd.read_csv(f"{self.dataset_dir}/KT1/{file}")
+            u_df['u_id'] = u_id
             u_df['correct'] = 0
             # 가끔 안되는게 있어서 타입 변경
             u_df['question_id'] = u_df['question_id'].astype(str)
@@ -113,7 +114,7 @@ class EdNet01(Dataset):
             r_seqs.append([u_df['correct'].values])
             t_seqs.append([u_df['user_answer'].values])
             
-            concate_csv = pd.concat([concate_csv, u_df])
+            new_csv = pd.concat([new_csv, u_df])
             
         # 피클에 파일 저장
         with open(os.path.join(self.save_dir, Q_SEQ_PICKLE), "wb") as f:
@@ -126,6 +127,6 @@ class EdNet01(Dataset):
             pickle.dump(t_seqs, f)
 
         # 새로 만든 파일 저장
-        concate_csv.to_csv(os.path.join(self.save_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
+        new_csv.to_csv(os.path.join(self.save_dir, 'Ednet01.csv'), index=False, encoding='utf-8-sig')
         
         return qid_seqs, r_seqs, u_seqs, t_seqs
