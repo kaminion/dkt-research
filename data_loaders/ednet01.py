@@ -84,7 +84,7 @@ class EdNet01(Dataset):
         q_df.set_index('question_id')
         
         # 파일리스트 로드 후 불러오기 (로딩 적용)
-        for file in tqdm(file_list, leave=False):
+        for file in tqdm(file_list):
             u_id = f'{file}'
             u_df = pd.read_csv(f"{self.dataset_dir}/KT1/{file}")
             u_df['correct'] = 0
