@@ -101,14 +101,16 @@ class EdNet01(Dataset):
                 cnt = len(u_df.loc[u_df['question_id'] == qid, 'question_id'])
                 print(f"count: {cnt} ====================")
                 # qid 없다면 넘어감
-                if len(cnt) == 0:
+                if cnt == 0:
                     continue
                 
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
                 # 1. u_df 문항번호체크
-                print(f"udf: {u_df['question_id'] == qid}")
+                uc = u_df.loc[u_df['question_id'] == qid, 'user_answer']
+                print(f"udf: {u_df['question_id'] == qid}, correctness: {uc}")
                 # 2. q_df 문항번호 체크
-                print(f"qdf: {q_df['question_id'] == qid}")
+                qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer']
+                print(f"qdf: {q_df['question_id'] == qid}, correctness: {qc}")
                 
                 
                 # 3. boolean 값 비교 후 변경
