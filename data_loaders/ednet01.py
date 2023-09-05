@@ -92,13 +92,12 @@ class EdNet01(Dataset):
             u_df['question_id'] = u_df['question_id'].astype(str)
             
             uids = u_df['question_id']
-            print(f"before: uid :{u_df.loc[['question_id'] == q_df['question_id']]}")
             # 각 udf 순회
-            for uid in uids:
-                print('start ========= ', uid)
-                print(u_df.loc[['question_id'] == q_df['question_id']]," === : === ", q_df['question_id'])
+            for qid in q_df:
+                print('start ========= ', qid)
+                print(u_df.loc[['question_id'] == qid]," === : === ", qid)
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
-                u_df.loc[(['question_id'] == q_df['question_id']) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
+                u_df.loc[(['question_id'] == qid) & (q_df.loc['question_id'] == qid) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
                 print('end ============= ', u_df)
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(np.array([u_id]))
