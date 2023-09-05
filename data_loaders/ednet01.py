@@ -92,8 +92,9 @@ class EdNet01(Dataset):
             u_df['question_id'] = u_df['question_id'].astype(str)
             
             uids = u_df['question_id']
+            qids = q_df['question_id']
             # 각 udf 순회
-            for qid in q_df:
+            for qid in qids:
                 print('start ========= ', qid)
                 print(u_df.loc[['question_id'] == qid]," === : === ", qid)
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
