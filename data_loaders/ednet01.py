@@ -96,7 +96,7 @@ class EdNet01(Dataset):
             # 각 udf 순회
             for qid in qids:
                 print('start ========= ', qid)
-                print(u_df.loc[['question_id'] == qid]," === : === ", qid)
+                print(u_df.loc[['question_id'] == qid, 'question_id']," === : === ", qid)
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
                 u_df.loc[(['question_id'] == qid) & (q_df.loc['question_id'] == qid) & (q_df['correct_answer'] == u_df['user_answer']), 'correct'] = 1
                 print('end ============= ', u_df)
