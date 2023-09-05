@@ -115,7 +115,7 @@ class EdNet01(Dataset):
                 
                 
                 # 3. boolean 값 비교 후 변경
-                u_df.loc[uc == qc, 'correct'] = 1
+                u_df.loc[(u_df['question_id'] == qid) & (u_df['user_answer'] == qc), 'correct'] = 1
                 print('end ============= ', u_df)
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(np.array([u_id]))
