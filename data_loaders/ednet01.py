@@ -91,32 +91,21 @@ class EdNet01(Dataset):
             # 가끔 안되는게 있어서 타입 변경
             u_df['question_id'] = u_df['question_id'].astype(str)
             
-            uids = u_df['question_id']
             qids = q_df['question_id']
             # 각 udf 순회
-            for qid in qids:
-                print('start ========= ', qid)
-                print(u_df.loc[u_df['question_id'] == qid, 'question_id']," === : === ", qid)
-                
+            for qid in qids:                
                 cnt = len(u_df.loc[u_df['question_id'] == qid, 'question_id'])
-                print(f"count: {cnt} ====================")
                 # qid 없다면 넘어감
                 if cnt == 0:
                     continue
                 
-                # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
-                # 1. u_df 문항번호체크
-                uc = u_df.loc[u_df['question_id'] == qid, 'user_answer'].values
-                print(f"udf: correctness: {uc}")
-                
-                # 2. q_df 문항번호 체크
+                # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당                
+                # 1. q_df 문항번호 체크
                 qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer'].values[0]
-                print(f"qdf: correctness: {qc}")
-                
-                
-                # 3. boolean 값 비교 후 변경
+            
+                # 2. boolean 값 비교 후 변경
                 u_df.loc[(u_df['question_id'] == qid) & (u_df['user_answer'] == qc), 'correct'] = 1
-                print('end ============= ', u_df)
+                
             # 유저 아이디 시퀀스에 넣기
             u_seqs.append(np.array([u_id]))
 
