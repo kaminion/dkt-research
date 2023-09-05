@@ -106,11 +106,11 @@ class EdNet01(Dataset):
                 
                 # 문항번호와 유저번호가 같으면서 정답값도 같다면 1값 할당
                 # 1. u_df 문항번호체크
-                uc = u_df.loc[u_df['question_id'] == qid, 'user_answer'].value
+                uc = u_df.loc[u_df['question_id'] == qid, 'user_answer'].values
                 print(f"udf: correctness: {uc}")
                 
                 # 2. q_df 문항번호 체크
-                qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer'].value
+                qc = q_df.loc[q_df['question_id'] == qid, 'correct_answer'].values
                 print(f"qdf: correctness: {qc}")
                 
                 
