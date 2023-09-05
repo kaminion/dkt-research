@@ -189,7 +189,7 @@ def main(model_name, dataset_name, use_wandb):
         model = QAKT(dataset.num_q, **model_config).to(device)
 
     else: 
-        print("The wrong model name was used...")
+        print(f"The wrong model name was used...: {model_name}")
         return
     
     # 데이터셋 분할
