@@ -92,6 +92,7 @@ class EdNet01(Dataset):
             u_df['question_id'] = u_df['question_id'].astype(str)
             
             uids = u_df['question_id']
+            print(f"before: uid :{u_df.loc[['question_id'] == q_df['question_id']]}")
             # 각 udf 순회
             for uid in uids:
                 print('start ========= ', uid)
