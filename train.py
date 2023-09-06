@@ -142,10 +142,10 @@ def main(model_name, dataset_name, use_wandb):
     if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
         train_model = dkt_train
-    if model_name == "dkt-":
+    elif model_name == "dkt-":
         model = torch.nn.DataParallel(DKT_FRONT(dataset.num_q, **model_config)).to(device)
         train_model = dk_front_train
-    if model_name == "dkt+":
+    elif model_name == "dkt+":
         model = torch.nn.DataParallel(DKT_REAR(dataset.num_q, **model_config)).to(device)
         train_model = dk_rear_train
     elif model_name == 'dkvmn':
