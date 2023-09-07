@@ -214,14 +214,14 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
                 if auc > max_auc : 
                     torch.save(
-                        model.module().state_dict(),
+                        model.state_dict(),
                         os.path.join(
-                            ckpt_path, "model.pt"
+                            ckpt_path, "model.ckpt"
                         )
                     )
                     max_auc = auc
     # Test
-    model.module.load_state_dict(torch.load(os.path.join(ckpt_path, "model.pt")))
+    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     with torch.no_grad():
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
