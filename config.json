@@ -5,7 +5,7 @@
         "train_ratio": 0.6,
         "learning_rate": 0.0001,
         "optimizer": "adam",
-        "seq_len": 110
+        "seq_len": 100
     },
     "dkt": {
         "emb_size": 100,
@@ -24,7 +24,7 @@
         "size_m": 110
     },
     "dkvmn+":{
-        "dim_s": 110,
+        "dim_s": 100,
         "size_m": 110
     },
     "dkvmn-":{
