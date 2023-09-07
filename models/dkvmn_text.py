@@ -216,7 +216,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
                     torch.save(
                         model.module().state_dict(),
                         os.path.join(
-                            ckpt_path, "model.ckpt"
+                            ckpt_path, "model.pt"
                         )
                     )
                     max_auc = auc
