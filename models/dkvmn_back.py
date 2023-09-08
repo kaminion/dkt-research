@@ -69,7 +69,7 @@ class BACK_DKVMN(Module):
 
         # final network
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
-        self.p_layer = Linear(self.dim_s, 1)
+        self.p_layer = Linear(2 * self.dim_s, 1)
 
         self.dropout_layer = Dropout(0.2)
         
@@ -130,16 +130,15 @@ class BACK_DKVMN(Module):
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k +
-                    torch.relu(self.fusion_layer(torch.concat([v, em_at], dim=-1)).permute(0, 2, 1))
+                    k
                 ],
                 dim=-1
             )
             )
         )
-
-        p = self.p_layer(self.dropout_layer(f))
-
+        f_l = torch.relu(self.fusion_layer(torch.concat([v, em_at], dim=-1)).permute(0, 2, 1))
+        
+        p = self.p_layer(torch.concat([self.dropout_layer(f), f_l], dim=-1))
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
 
