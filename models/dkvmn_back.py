@@ -86,7 +86,7 @@ class BACK_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + r * self.num_q).permute(0, 2, 1)
+        x = q + self.num_q * r 
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
