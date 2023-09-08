@@ -12,7 +12,7 @@ from transformers import BertModel, BertConfig
 from models.utils import cal_acc_class
 
 
-class SUBJ_DKVMN(Module):
+class BACK_DKVMN(Module):
     '''
         Args:
             num_q: the total number of the questions(KCs) in the given dataset
@@ -20,7 +20,7 @@ class SUBJ_DKVMN(Module):
             size_m: the memory size of this model
     '''
     def __init__(self, num_q, num_qid, dim_s, size_m) -> None:
-        super(SUBJ_DKVMN, self).__init__()
+        super(BACK_DKVMN, self).__init__()
         self.num_q = num_q 
         # 새로추가 됨
         self.num_qid = num_qid
