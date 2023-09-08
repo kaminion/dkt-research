@@ -7,7 +7,7 @@ model_name = 'dkvmn+'
 
 abs_path = f'.{os.path.sep}ckpts{os.path.sep}{model_name}{os.path.sep}'
 path = f'ASSIST2009{os.path.sep}'
-file_name = 'f1s_42.pkl'
+file_name = 'precisions_42.pkl'
 
 # TEST DATA SET 에만 수행하는 것이므로..
 # ASSISTMENT 2009: 52, ASSISTMENT 2012: 379
