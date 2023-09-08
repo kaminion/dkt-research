@@ -62,6 +62,7 @@ class BACK_DKVMN(Module):
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
         self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.fusion_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
@@ -129,7 +130,7 @@ class BACK_DKVMN(Module):
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k + em_at
+                    self.fusion_layer(torch.relu(torch.concat([k + em_at], dim=-1)))
                 ],
                 dim=-1
             )
