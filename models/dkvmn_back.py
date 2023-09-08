@@ -19,11 +19,10 @@ class BACK_DKVMN(Module):
             dim_s: the dimension of the state vectors in this model
             size_m: the memory size of this model
     '''
-    def __init__(self, num_q, num_qid, dim_s, size_m) -> None:
+    def __init__(self, num_q, dim_s, size_m) -> None:
         super(BACK_DKVMN, self).__init__()
         self.num_q = num_q 
         # 새로추가 됨
-        self.num_qid = num_qid
         self.dim_s = dim_s 
         self.size_m = size_m
 
@@ -124,7 +123,6 @@ class BACK_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
-        diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
             self.f_layer(
