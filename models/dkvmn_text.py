@@ -243,9 +243,9 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
-            precision = metrics.precision_score(t.numpy(), y.numpy(), average='binary')
-            recall = metrics.recall_score(t.numpy(), y.numpy(), average='binary')
-            f1 = metrics.f1_score(t.numpy(), y.numpy(), average='binary')
+            precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
+            recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
+            f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
             
             loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
