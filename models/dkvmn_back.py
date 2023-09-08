@@ -130,7 +130,7 @@ class BACK_DKVMN(Module):
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    self.fusion_layer(torch.relu(torch.concat([k, em_at], dim=-1))).permute(0, 2, 1)
+                    torch.relu(self.fusion_layer(torch.concat([k, em_at], dim=-1)).permute(0, 2, 1))
                 ],
                 dim=-1
             )
