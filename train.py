@@ -253,7 +253,7 @@ def main(model_name, dataset_name, use_wandb):
     opt.lr_scheduler = lr_scheduler
 
     # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-    aucs, loss_means, accs, q_accs, q_cnts = \
+    aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = \
         train_model(
             model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
         )
@@ -270,6 +270,14 @@ def main(model_name, dataset_name, use_wandb):
         pickle.dump(q_accs, f)
     with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
         pickle.dump(q_cnts, f)
+        
+    # precisions, recalls, f1s
+    with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
+        pickle.dump(precisions, f)
+    with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
+        pickle.dump(recalls, f)
+    with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
+        pickle.dump(f1s, f)
         
 # program main entry point
 if __name__ == "__main__":

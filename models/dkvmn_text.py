@@ -160,6 +160,9 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
     loss_means = []  
     accs = []
     q_accs = {}
+    precisions = []
+    recalls = []
+    f1s = []
     
     max_auc = 0
 
@@ -240,6 +243,10 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.numpy()]
             acc = metrics.accuracy_score(t.numpy(), bin_y)
+            precision = metrics.precision_score(t.numpy(), y.numpy())
+            recall = metrics.recall_score(t.numpy(), y.numpy())
+            f1 = metrics.f1_score(t.numpy(), y.numpy())
+            
             loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
 
             print(f"[Test] number: {i}, AUC: {auc}, ACC: :{acc} Loss: {loss} ")
@@ -248,8 +255,12 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             aucs.append(auc)
             loss_mean.append(loss)     
             accs.append(acc)
+            precisions.append(precision)
+            recalls.append(recall)
+            f1s.append(f1)
+            
             q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
         loss_means.append(np.mean(loss_mean))
 
 
-    return aucs, loss_means, accs, q_accs, cnt
+    return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
