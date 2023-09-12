@@ -9,7 +9,7 @@
     },
     "dkt": {
         "emb_size": 100,
-        "hidden_size": 200
+        "hidden_size": 50
     },
     "dkt-": {
         "emb_size": 100,
@@ -20,16 +20,16 @@
         "hidden_size": 200
     },
     "dkvmn":{
-        "dim_s": 100,
-        "size_m": 110
+        "dim_s": 50,
+        "size_m": 20
     },
     "dkvmn+":{
-        "dim_s": 100,
-        "size_m": 110
+        "dim_s": 50,
+        "size_m": 20
     },
     "dkvmn-":{
-        "dim_s": 100,
-        "size_m": 110
+        "dim_s": 50,
+        "size_m": 20
     },
     "sakt":{
         "n": 100,
