@@ -136,6 +136,8 @@ class BACK_DKVMN(Module):
             )
             )
         )
+        
+        print(v.shape, em_at.shape)
         f_l = torch.relu(self.fusion_layer(torch.concat([v, em_at], dim=-1)).permute(0, 2, 1))
         
         p = self.p_layer(torch.concat([self.dropout_layer(f), f_l], dim=-1))
