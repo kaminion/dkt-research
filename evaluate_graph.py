@@ -3,7 +3,7 @@ import pickle
 import numpy as np 
 import pandas as pd
 
-model_names = ['dkvmn+', 'dkt', 'dkvmn', 'dkvmn-', 'sakt', 'akt', 'saint', 'dkt50']
+model_names = ['dkvmn+', 'dkt', 'dkvmn', 'dkvmn-', 'sakt', 'akt', 'saint', 'dkt50', 'dkvmn2009-performance', 'dkvmn-2009-performance', 'dkvmn+2009-performance']
 
 
 for model_name in model_names:
