@@ -126,14 +126,14 @@ class SUBJ_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
-        # diff = self.d_emb_layer(q2diff)
+        diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
             self.f_layer(
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k # + diff
+                    k + diff
                 ],
                 dim=-1
             )
