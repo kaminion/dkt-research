@@ -88,8 +88,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        diff = self.d_emb_layer(q2diff)
-        x = self.qr_emb_layer(q + diff * self.num_q).permute(0, 2, 1)
+        x = self.qr_emb_layer(q + q2diff * self.num_q).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
@@ -127,13 +126,14 @@ class SUBJ_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
+        # diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
             self.f_layer(
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k
+                    k # + diff
                 ],
                 dim=-1
             )
