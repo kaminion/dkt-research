@@ -51,6 +51,8 @@ class CSEDM(Dataset):
                 self.q_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "rb") as f:
                 self.r_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, Q_LIST_PICKLE), "rb") as f:
+                self.q_list = pickle.load(f)
             with open(os.path.join(self.dataset_dir, U_LIST_PICKLE), "rb") as f:
                 self.u_list = pickle.load(f)
             with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "rb") as f:
