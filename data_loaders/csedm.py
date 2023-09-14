@@ -58,10 +58,8 @@ class CSEDM(Dataset):
             with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
                 self.pid_list = pickle.load(f)
         else:
-            self.q_seqs, self.r_seqs, self.u_seqs, self.at_seqs, self.q_list,\
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, \
             self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
-                
-
 
         # 유저와 문제 갯수 저장
         self.num_u = self.u_seqs.shape[0]
