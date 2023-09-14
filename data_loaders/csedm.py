@@ -81,12 +81,10 @@ class CSEDM(Dataset):
         return self.len
 
     def preprocess(self):
-        df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1')
+        df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
         df.loc[df['Label'] == 'True', 'Label'] = 1
         df.loc[df['Label'] == 'False', 'Label'] = 0
         
-        print(df.columns)
-
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["SubjectID"].values)
         q_list = np.unique(df["ProblemID"].values) 
