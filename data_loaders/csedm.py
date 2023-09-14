@@ -65,7 +65,7 @@ class CSEDM(Dataset):
         # 유저와 문제 갯수 저장
         self.num_u = self.u_seqs.shape[0]
         self.num_q = self.q_seqs.shape[0]
-        self.num_a = len(self.pid_list)
+        self.num_pid = len(self.pid_list)
         
         if seq_len:
             self.q_seqs, self.r_seqs, self.at_seqs, [], [], [] = \
