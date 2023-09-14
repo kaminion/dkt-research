@@ -75,7 +75,7 @@ class CSEDM(Dataset):
         self.len = len(self.q_seqs)
         
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], None, None # self.pid_seqs[index], self.hint_seqs[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index] # self.pid_seqs[index], self.hint_seqs[index]
     
     def __len__(self):
         return self.len
