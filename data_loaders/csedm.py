@@ -41,6 +41,9 @@ class CSEDM(Dataset):
 
         self.dataset_dir = dataset_dir
         self.save_dir = SAVE_DIR
+        self.dataset_path = os.path.join(
+            self.dataset_dir, "ALL_CSEDM.csv"
+        )
 
         # 미리 피클에 담겨진 파일들 로딩
         if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)) & os.path.exists(os.path.join(self.dataset_dir, 'ALL_CSEDM.csv')):
@@ -58,9 +61,7 @@ class CSEDM(Dataset):
             self.q_seqs, self.r_seqs, self.u_seqs, self.at_seqs, self.q_list,\
             self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
                 
-        self.dataset_path = os.path.join(
-            self.dataset_dir, "ALL_CSEDM.csv"
-        )
+
 
         # 유저와 문제 갯수 저장
         self.num_u = self.u_seqs.shape[0]
