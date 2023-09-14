@@ -82,6 +82,7 @@ class ASSIST2009(Dataset):
     def preprocess(self):
         # 2번째 줄 dropna 내가 추가한 것이었으나 삭제 (# .dropna(subset=['answer_text'])\)
         df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1').dropna(subset=["skill_name"])\
+            .dropna(subset=['answer_text'])\
             .drop_duplicates(subset=["order_id", "skill_name"])\
             .sort_values(by=["order_id"])
         df['answer_text'] = df['answer_text'].fillna(' ')

@@ -9,7 +9,7 @@ import os
 import pickle
 
 KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
-DATASET_DIR = f"{KAKAO_DATASET_DIR}/SYNTHETIC/" 
+DATASET_DIR = f"{KAKAO_DATASET_DIR}/CSEDM/" 
 # KAKAO 때문에 추가
 SAVE_DIR = "/app/outputs/"
 # DATASET_DIR = "datasets/EDNET01/"
@@ -43,94 +43,86 @@ class Synthetic(Dataset):
         self.save_dir = SAVE_DIR
 
         # 미리 피클에 담겨진 파일들 로딩
-        if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)) & os.path.exists(os.path.join(self.dataset_dir, 'naive_c5_q50_s4000_v19.csv')):
+        if os.path.exists(os.path.join(self.dataset_dir, Q_SEQ_PICKLE)) & os.path.exists(os.path.join(self.dataset_dir, 'ALL_CSEDM.csv')):
             with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "rb") as f:
                 self.q_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "rb") as f:
                 self.r_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, U_SEQ_PICKLE), "rb") as f:
                 self.u_seqs = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, T_SEQ_PICKLE), "rb") as f:
-                self.t_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "rb") as f:
+                self.at_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
+                self.pid_list = pickle.load(f)
         else:
-            self.q_seqs, self.r_seqs, self.u_seqs, self.t_seqs = self.preprocess()
+            self.q_seqs, self.r_seqs, self.u_seqs, self.at_seqs, self.q_list,\
+            self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
                 
         self.dataset_path = os.path.join(
-            self.dataset_dir, "naive_c5_q50_s4000_v19.csv"
+            self.dataset_dir, "ALL_CSEDM.csv"
         )
 
         # 유저와 문제 갯수 저장
         self.num_u = self.u_seqs.shape[0]
         self.num_q = self.q_seqs.shape[0]
+        self.num_a = len(self.pid_list)
         
         if seq_len:
-            self.q_seqs, self.r_seqs, self.t_seqs, [], [], [] = \
-                match_seq_len(self.q_seqs, self.r_seqs, self.t_seqs, [], [], [], seq_len)
+            self.q_seqs, self.r_seqs, self.at_seqs, [], [], [] = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, [], [], [], seq_len)
 
         self.len = len(self.q_seqs)
         
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.pid_seqs[index], self.hint_seqs[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], [], [] # self.pid_seqs[index], self.hint_seqs[index]
     
     def __len__(self):
         return self.len
 
     def preprocess(self):
-        # 2번째 줄 dropna 내가 추가한 것이었으나 삭제 (# .dropna(subset=['answer_text'])\)
-        df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1', header=None)
-        df['answer_text'] = df['answer_text'].fillna(' ')
+        df = pd.read_csv(self.dataset_path, encoding='ISO-8859-1')
+        df.loc[df['Label'] == 'True', 'Label'] = 1
+        df.loc[df['Label'] == 'False', 'Label'] = 0
 
         # 고유 유저와 고유 스킬리스트만 남김
-        u_list = np.unique(df["user_id"].values)
-        q_list = np.unique(df["skill_name"].values) 
-        pid_list = np.unique(df["problem_id"].values)
+        u_list = np.unique(df["SubjectID"].values)
+        q_list = np.unique(df["ProblemID"].values) 
+        pid_list = np.unique(df["AssignmentID"].values)
 
         # map 형태로 스킬이름: index 자료 저장, 유저도 유저명: 인덱스로 저장
         u2idx = {u: idx for idx, u in enumerate(u_list)}
         q2idx = {q: idx for idx, q in enumerate(q_list)}
         d2idx = {}
-        p2idx = {pid: idx for idx, pid in enumerate(pid_list)}
-
-        # 얼마나 썼는지 상관없이 힌트를 사용한 것으로 간주한다
-        df.loc[df['hint_count'] >= 1, 'hint_count'] = 1
-        df.loc[df['hint_count'] < 1, 'hint_count'] = 0
 
         q_seqs = []
         r_seqs = []
         at_seqs = []
         q2diff = []
-        pid_seqs = []
-        hint_seqs = []
 
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
-            skills = df[df["skill_name"] == q]
-            c_seq = skills["correct"].values
+            skills = df[df["ProblemID"] == q]
+            c_seq = skills["Label"].values
             d2idx[q] = c_seq.sum() / len(c_seq)
 
         for u in u_list:
             # 유저아이디를 순차적으로 돌면서 해당하는 유저 탐색
-            df_u = df[df["user_id"] == u]
+            df_u = df[df["SubjectID"] == u]
 
             # 유저의 스킬에 대한 해당 스킬의 인덱스와 정답 여부를 함께 시퀀스로 생성(여러 스킬의 경우에도 해당 인덱스 저장, 정답여부 저장) 
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
-            q_seq = np.array([q2idx[q] for q in df_u["skill_name"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
-            r_seq = df_u["correct"].values # 유저의 정답여부 저장
-            at_seq = df_u['answer_text'].values
-            pid_seq = np.array([p2idx[pid] for pid in df_u['problem_id']]) # 유저가 푼 문제에 대한 해당 문제의 인덱스 리스트들을 np.array로 형변환
+            q_seq = np.array([q2idx[q] for q in df_u["ProblemID"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
+            r_seq = df_u["Label"].values # 유저의 정답여부 저장
+            at_seq = df_u['Code'].values
 
             # 유저가 푼 문제들의 정오답 비율을 구함
-            d_seq = np.array([d2idx[q] for q in df_u["skill_name"]])
-
-            hint_seq = df_u['hint_count'].values
+            d_seq = np.array([d2idx[q] for q in df_u["ProblemID"]])
 
             # 해당 리스트들을 다시 리스트에 저장
             q_seqs.append(q_seq)
             r_seqs.append(r_seq)
             at_seqs.append(at_seq)
             q2diff.append(d_seq)
-            pid_seqs.append(pid_seq)
-            hint_seqs.append(hint_seq)
 
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
@@ -147,10 +139,6 @@ class Synthetic(Dataset):
         with open(os.path.join(self.dataset_dir, Q_DIFF_PICKLE), "wb") as f:
             pickle.dump(q2diff, f)
         with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "wb") as f:
-            pickle.dump(pid_seqs, f)
-        with open(os.path.join(self.dataset_dir, P_LIST_PICKLE), "wb") as f:
             pickle.dump(pid_list, f)
-        with open(os.path.join(self.dataset_dir, HINT_LIST_PICKLE), "wb") as f:
-            pickle.dump(hint_seqs, f)
 
-        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_seqs, pid_list, hint_seqs
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_list

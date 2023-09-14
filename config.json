@@ -9,7 +9,7 @@
     },
     "dkt": {
         "emb_size": 100,
-        "hidden_size": 50
+        "hidden_size": 200
     },
     "dkt-": {
         "emb_size": 100,
