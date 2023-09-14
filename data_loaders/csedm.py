@@ -62,9 +62,9 @@ class CSEDM(Dataset):
             self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
 
         # 유저와 문제 갯수 저장
-        self.num_u = len(self.u_list)
-        self.num_q = len(self.q_seqs)
-        self.num_pid = len(self.pid_list)
+        self.num_u = self.u_list.shape[0]
+        self.num_q = self.q_list.shape[0]
+        self.num_pid = self.pid_list.shape[0]
         
         if seq_len:
             self.q_seqs, self.r_seqs, self.at_seqs, [], [], [] = \
