@@ -51,8 +51,8 @@ class CSEDM(Dataset):
                 self.q_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, R_SEQ_PICKLE), "rb") as f:
                 self.r_seqs = pickle.load(f)
-            with open(os.path.join(self.dataset_dir, U_SEQ_PICKLE), "rb") as f:
-                self.u_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, U_LIST_PICKLE), "rb") as f:
+                self.u_list = pickle.load(f)
             with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "rb") as f:
                 self.at_seqs = pickle.load(f)
             with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
@@ -62,7 +62,7 @@ class CSEDM(Dataset):
             self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
 
         # 유저와 문제 갯수 저장
-        self.num_u = self.u_seqs.shape[0]
+        self.num_u = len(self.u_list)
         self.num_q = self.q_seqs.shape[0]
         self.num_pid = len(self.pid_list)
         
