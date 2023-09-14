@@ -35,7 +35,7 @@ P_ID_PICKLE = 'pid.pkl'
 P_LIST_PICKLE = "p_list.pkl"
 HINT_LIST_PICKLE = "hint_use.pkl"
 
-class Synthetic(Dataset):
+class CSEDM(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR):
         super().__init__()
 

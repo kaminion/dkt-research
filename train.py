@@ -15,6 +15,7 @@ from sklearn import metrics
 from data_loaders.assist2009 import ASSIST2009
 from data_loaders.assist2012 import ASSIST2012
 from data_loaders.ednet01 import EdNet01
+from data_loaders.csedm import CSEDM
 
 # 모델 추가
 from models.dkt_rear import DKT as DKT_REAR
@@ -126,6 +127,8 @@ def main(model_name, dataset_name, use_wandb):
     elif dataset_name == "EDNET01":
         dataset = EdNet01(seq_len)
         collate_pt = collate_ednet
+    elif dataset_name == "CSEDM":
+        dataset = CSEDM(seq_len)
 
     if torch.cuda.is_available():
         device = "cuda"
