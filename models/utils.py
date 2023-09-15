@@ -270,7 +270,7 @@ def collate_fn(batch, pad_val=-1):
     # SENT_LEN = len(max(map(mapmax, at_seqs), key=len))
 
     for answer_text in at_seqs:
-        text = ' '.join(answer_text)
+        text = ' '.join(map(str, answer_text))
         encoded_bert_sent = bert_tokenizer.encode_plus(
             text, add_special_tokens=True, padding='max_length', truncation=True
         )
@@ -280,7 +280,7 @@ def collate_fn(batch, pad_val=-1):
     proc_atshft_seqs = []
     # SENT_LEN = q_seqs.size(0)
     for answer_text in atshft_seqs:
-        text = " ".join(answer_text)
+        text = " ".join(map(str, answer_text))
         encoded_bert_sent = bert_tokenizer.encode_plus(
             text, add_special_tokens=True, padding='max_length', truncation=True
         )
