@@ -199,7 +199,6 @@ def main(model_name, dataset_name, use_wandb):
     
     # 데이터셋 분할
     data_size = len(dataset)
-    print(f"====== data_size: {data_size} =======")
     train_size = int(data_size * train_ratio) 
     valid_size = int(data_size * ((1.0 - train_ratio) / 2.0))
     test_size = data_size - train_size - valid_size

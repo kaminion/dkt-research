@@ -12,7 +12,7 @@ KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
 DATASET_DIR = f"{KAKAO_DATASET_DIR}/CSEDM/" 
 # KAKAO 때문에 추가
 SAVE_DIR = "/app/outputs/"
-# DATASET_DIR = "datasets/EDNET01/"
+# DATASET_DIR = "datasets/CSEDM/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
 U_SEQ_PICKLE = "u_seqs.pkl"
@@ -57,6 +57,8 @@ class CSEDM(Dataset):
                 self.u_list = pickle.load(f)
             with open(os.path.join(self.dataset_dir, AT_SEQ_PICKLE), "rb") as f:
                 self.at_seqs = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, Q_DIFF_PICKLE), "rb") as f:
+                self.q2diff = pickle.load(f)
             with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
                 self.pid_list = pickle.load(f)
         else:
@@ -68,22 +70,23 @@ class CSEDM(Dataset):
         self.num_q = self.q_list.shape[0]
         self.num_pid = self.pid_list.shape[0]
         
+        
         if seq_len:
-            self.q_seqs, self.r_seqs, self.at_seqs, [], [], [] = \
-                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, [], [], [], seq_len)
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, _, _ = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.q_seqs, self.q_seqs, seq_len) # 3개는 더미임
 
         self.len = len(self.q_seqs)
         
     def __getitem__(self, index) :
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index] # self.pid_seqs[index], self.hint_seqs[index]
+        # self.pid_seqs[index], self.hint_seqs[index]
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.q_seqs[index], self.q_seqs[index] # 여기도 2개 더미임
     
     def __len__(self):
         return self.len
 
     def preprocess(self):
         df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
-        df.loc[df['Label'] == 'True', 'Label'] = 1
-        df.loc[df['Label'] == 'False', 'Label'] = 0
+        df['Label'] = df['Label'].replace({True: 1, False: 0})        
         
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["SubjectID"].values)
