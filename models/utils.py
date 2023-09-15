@@ -263,11 +263,11 @@ def collate_fn(batch, pad_val=-1):
     # BERT preprocessing
     bert_details = []
 
-    def mapmax(data):
-        return max(data, key=len)
+    # def mapmax(data):
+    #     return max(data, key=len)
 
     # 2차원에서 가장 긴 문장 추출
-    SENT_LEN = len(max(map(mapmax, at_seqs), key=len))
+    # SENT_LEN = len(max(map(mapmax, at_seqs), key=len))
 
     for answer_text in at_seqs:
         text = ' '.join(answer_text)
