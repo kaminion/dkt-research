@@ -13,8 +13,9 @@ code_fully = pd.DataFrame()
 for dir_name in DIVIDE_LISTS:
     dataset_dir = f"{BASE_DIR}{dir_name}"
     
-    early = pd.read_csv(f"{dataset_dir}/early.csv")
-    late  = pd.read_csv(f"{dataset_dir}/late.csv")
+    early = pd.read_csv(f"{dataset_dir}/early.csv").drop_duplicates(subset=['SubjectID', 'ProblemID'])
+    late  = pd.read_csv(f"{dataset_dir}/late.csv").drop_duplicates(subset=['SubjectID', 'ProblemID'])
+    
     main_table = pd.read_csv(f"{dataset_dir}/MainTable.csv").dropna(subset=["Score"])
     code_state = pd.read_csv(f"{dataset_dir}/CodeStates.csv")
     
