@@ -34,6 +34,7 @@ Q_DIFF_PICKLE = 'q2diff.pkl'
 P_ID_PICKLE = 'pid.pkl'
 P_LIST_PICKLE = "p_list.pkl"
 HINT_LIST_PICKLE = "hint_use.pkl"
+LABEL_SEQ_PICKLE = "label_seqs.pkl"
 
 class CSEDM(Dataset):
     def __init__(self, seq_len, dataset_dir=DATASET_DIR):
@@ -61,9 +62,11 @@ class CSEDM(Dataset):
                 self.q2diff = pickle.load(f)
             with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "rb") as f:
                 self.pid_list = pickle.load(f)
+            with open(os.path.join(self.dataset_dir, LABEL_SEQ_PICKLE), "rb") as f:
+                self.label_seqs = pickle.load(f)
         else:
             self.q_seqs, self.r_seqs, self.at_seqs, self.q_list, \
-            self.u_list, self.q2idx, self.q2diff, self.pid_list = self.preprocess()
+            self.u_list, self.q2idx, self.q2diff, self.pid_list, self.label_seqs = self.preprocess()
 
         # 유저와 문제 갯수 저장
         self.num_u = self.u_list.shape[0]
@@ -72,21 +75,22 @@ class CSEDM(Dataset):
         
         
         if seq_len:
-            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, _, _ = \
-                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.q_seqs, self.q_seqs, seq_len) # 3개는 더미임
+            self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.label_seqs, _ = \
+                match_seq_len(self.q_seqs, self.r_seqs, self.at_seqs, self.q2diff, self.label_seqs, self.q_seqs, seq_len) # 1개는 더미임
 
         self.len = len(self.q_seqs)
         
     def __getitem__(self, index) :
         # self.pid_seqs[index], self.hint_seqs[index]
-        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.q_seqs[index], self.q_seqs[index] # 여기도 2개 더미임
+        return self.q_seqs[index], self.r_seqs[index], self.at_seqs[index], self.q2diff[index], self.label_seqs[index], self.q_seqs[index] # 여기도 1개 더미임
     
     def __len__(self):
         return self.len
 
     def preprocess(self):
         df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
-        df['Label'] = df['Label'].replace({True: 1, False: 0})        
+        df['Label'] = df['Label'].replace({True: 1, False: 0})
+        df['CorrectEventually'] = df['CorrectEventually'].replace({True: 1, False: 0})
         
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["SubjectID"].values)
@@ -102,11 +106,12 @@ class CSEDM(Dataset):
         r_seqs = []
         at_seqs = []
         q2diff = []
+        l_seqs = []
 
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
             skills = df[df["ProblemID"] == q]
-            c_seq = skills["Score"].values
+            c_seq = skills["CorrectEventually"].values
             d2idx[q] = c_seq.sum() / len(c_seq)
 
         for u in u_list:
@@ -116,8 +121,9 @@ class CSEDM(Dataset):
             # 유저의 스킬에 대한 해당 스킬의 인덱스와 정답 여부를 함께 시퀀스로 생성(여러 스킬의 경우에도 해당 인덱스 저장, 정답여부 저장) 
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
             q_seq = np.array([q2idx[q] for q in df_u["ProblemID"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
-            r_seq = df_u["Score"].values # 유저의 정답여부 저장
+            r_seq = df_u["CorrectEventually"].values # 유저의 정답여부 저장
             at_seq = df_u['Code'].values
+            l_seq = df_u['Label'].values
 
             # 유저가 푼 문제들의 정오답 비율을 구함
             d_seq = np.array([d2idx[q] for q in df_u["ProblemID"]])
@@ -127,6 +133,7 @@ class CSEDM(Dataset):
             r_seqs.append(r_seq)
             at_seqs.append(at_seq)
             q2diff.append(d_seq)
+            l_seqs.append(l_seq)
 
         with open(os.path.join(self.dataset_dir, Q_SEQ_PICKLE), "wb") as f:
             pickle.dump(q_seqs, f)
@@ -144,5 +151,7 @@ class CSEDM(Dataset):
             pickle.dump(q2diff, f)
         with open(os.path.join(self.dataset_dir, P_ID_PICKLE), "wb") as f:
             pickle.dump(pid_list, f)
+        with open(os.path.join(self.dataset_dir, LABEL_SEQ_PICKLE), "wb") as f:
+            pickle.dump(l_seqs, f)
 
-        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_list
+        return q_seqs, r_seqs, at_seqs, q_list, u_list, q2idx, q2diff, pid_list, l_seqs

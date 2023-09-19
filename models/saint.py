@@ -105,13 +105,17 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
         for data in train_loader:
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+            
+            # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
+            
+            
             model.train()
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
             y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             y = torch.masked_select(y, m)
-            t = torch.masked_select(r, m)
+            t = torch.masked_select(pid_seqs, m) # CSEDM은 r 대신 pid_seqs
 
             opt.zero_grad()
             loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
@@ -137,7 +141,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(r, m).detach().cpu()
+                t = torch.masked_select(pid_seqs, m).detach().cpu() # CSEDM은 r 대신 pid_seqs
 
                 auc = metrics.roc_auc_score(
                     y_true=t.numpy(), y_score=y.numpy()
@@ -169,7 +173,7 @@ def train_model(model, train_loader, valid_loader, test_loader, num_q, num_epoch
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
             y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(r, m).detach().cpu()
+            t = torch.masked_select(pid_seqs, m).detach().cpu() # CSEDM은 r 대신 pid_seqs
 
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
