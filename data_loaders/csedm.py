@@ -90,8 +90,10 @@ class CSEDM(Dataset):
     def preprocess(self):
         df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
         df['Label'] = df['Label'].replace({True: 1, False: 0})
-        df['CorrectEventually'] = df['CorrectEventually'].replace({True: 1, False: 0})
         
+        df.loc[df['Score'] == 1, 'Score'] = 1
+        df.loc[df['Score'] != 1, 'Score'] = 0
+                
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["SubjectID"].values)
         q_list = np.unique(df["ProblemID"].values) 
@@ -111,7 +113,7 @@ class CSEDM(Dataset):
         # 난이도 전처리, 미리 해당문제들의 정오 비율을 넣음
         for q in q_list:
             skills = df[df["ProblemID"] == q]
-            c_seq = skills["CorrectEventually"].values
+            c_seq = skills["Score"].values
             d2idx[q] = c_seq.sum() / len(c_seq)
 
         for u in u_list:
@@ -121,7 +123,7 @@ class CSEDM(Dataset):
             # 유저의 스킬에 대한 해당 스킬의 인덱스와 정답 여부를 함께 시퀀스로 생성(여러 스킬의 경우에도 해당 인덱스 저장, 정답여부 저장) 
             # 스킬에 대한 인덱스 시퀀스와, 정답여부 시퀀스를 생성함
             q_seq = np.array([q2idx[q] for q in df_u["ProblemID"]]) # 유저의 스킬에 대한 해당 스킬의 인덱스 리스트를 np.array로 형변환
-            r_seq = df_u["CorrectEventually"].values # 유저의 정답여부 저장
+            r_seq = df_u["Score"].values # 유저의 정답여부 저장
             at_seq = df_u['Code'].values
             l_seq = df_u['Label'].values
 
