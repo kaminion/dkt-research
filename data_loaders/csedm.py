@@ -91,8 +91,8 @@ class CSEDM(Dataset):
         df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
         df['Label'] = df['Label'].replace({True: 1, False: 0})
         
-        df.loc[df['Score'] == 1, 'Score'] = 1
-        df.loc[df['Score'] != 1, 'Score'] = 0
+        # df.loc[df['Score'] == 1, 'Score'] = 1
+        # df.loc[df['Score'] != 1, 'Score'] = 0
                 
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["SubjectID"].values)
