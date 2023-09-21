@@ -278,19 +278,19 @@ def collate_fn(batch, pad_val=-1):
         bert_details.append(encoded_bert_sent)
     
     # 정답지 추가
-    proc_atshft_seqs = []
-    # SENT_LEN = q_seqs.size(0)
-    for answer_text in atshft_seqs:
-        text = " ".join(map(str, answer_text))
-        encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, padding='max_length', truncation=True
-        )
-        proc_atshft_seqs.append(encoded_bert_sent)
+    # proc_atshft_seqs = []
+    # # SENT_LEN = q_seqs.size(0)
+    # for answer_text in atshft_seqs:
+    #     text = " ".join(map(str, answer_text))
+    #     encoded_bert_sent = bert_tokenizer.encode_plus(
+    #         text, add_special_tokens=True, padding='max_length', truncation=True
+    #     )
+    #     proc_atshft_seqs.append(encoded_bert_sent)
 
     bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
     bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
-    proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
+    # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
     return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs, hint_seqs
 
