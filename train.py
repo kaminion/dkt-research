@@ -18,6 +18,7 @@ from data_loaders.ednet01 import EdNet01
 from data_loaders.csedm import CSEDM
 
 # 모델 추가
+from models.dkt_sc import DKT_FUSION as DKT_F
 from models.dkt_rear import DKT as DKT_REAR
 from models.dkt_front import DKT as DKT_FRONT
 from models.dkt import DKT
@@ -37,6 +38,7 @@ from models.qakt import QAKT
 from models.akt import AKT
 
 # 모델에 따른 train
+from models.dkt_sc import dkt_train as dkf_train
 from models.dkt_rear import dkt_train as dk_rear_train
 from models.dkt_front import dkt_train as dk_front_train
 from models.dkt import dkt_train
@@ -148,6 +150,9 @@ def main(model_name, dataset_name, use_wandb):
     if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
         train_model = dkt_train
+    elif model_name == "dkf":
+        model = torch.nn.DataParallel(DKT_F(dataset.num_q, **model_config)).to(device)
+        train_model = dkf_train
     elif model_name == "dkt-":
         model = torch.nn.DataParallel(DKT_FRONT(dataset.num_q, **model_config)).to(device)
         train_model = dk_front_train

@@ -11,6 +11,10 @@
         "emb_size": 50,
         "hidden_size": 50
     },
+    "dkf": {
+        "emb_size": 50,
+        "hidden_size": 50
+    },
     "dkt-": {
         "emb_size": 100,
         "hidden_size": 200
