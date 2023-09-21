@@ -100,6 +100,7 @@ class LSTMModel(Module):
 
 class DKT_FUSION(Module):
     def __init__(self, num_q, emb_size, hidden_size):
+        super(DKT_FUSION, self).__init__()
         self.num_q = num_q
         self.emb_size = emb_size
         self.hidden_size = hidden_size
