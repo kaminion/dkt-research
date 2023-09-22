@@ -38,7 +38,6 @@ class LSTMCell(Module):
         self.at2_emb_layer = Linear(512, self.hidden_size)
         self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)
         
-        
     def reset_parameters(self):
         std = 1.0 / math.sqrt(self.hidden_size)
         for w in self.parameters():
@@ -54,11 +53,10 @@ class LSTMCell(Module):
         #                attention_mask=at_t,
         #                token_type_ids=at_m
         #                ).last_hidden_state)
-        at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                attention_mask=at_t
-                ).last_hidden_state)
+        bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
+        at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
-        print(at.shape, x.shape)
+        print(at.shape, x.shape, bt.hidden_states.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         
         gates = self.x2h(v) + self.h2h(hx)
