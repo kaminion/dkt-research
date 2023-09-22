@@ -156,7 +156,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
             y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m) # r 대신 pid_seq
-            print(qshft_seqs.shape, y.shape, num_q, (y * one_hot(qshft_seqs.long()).shape))
+            print(qshft_seqs.shape, y.shape, num_q, (y * one_hot(qshft_seqs.long(), num_q)).shape)
             y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
             opt.zero_grad()
