@@ -10,7 +10,7 @@ from torch.autograd import Variable
 from sklearn import metrics
 from models.utils import calculate_dis_impact
 
-from transformers import BertModel, BertConfig
+from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
 from models.utils import cal_acc_class
 
 
@@ -29,8 +29,11 @@ class LSTMCell(Module):
         self.reset_parameters()
         
         # BERT를 위한 추가 레이어
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        distilconfig = DistilBertConfig('distilbert-base-uncased')
+        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
+        
         self.at_emb_layer = Linear(768, self.hidden_size)
         self.at2_emb_layer = Linear(512, self.hidden_size)
         self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)

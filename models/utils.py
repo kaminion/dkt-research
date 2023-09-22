@@ -9,13 +9,14 @@ if torch.cuda.is_available():
 else:
     from torch import FloatTensor, CharTensor, LongTensor
 
-from transformers import BertTokenizer
+from transformers import BertTokenizer, AutoTokenizer
 from sklearn import metrics
 
 from sklearn.metrics import classification_report
 from torch.nn.functional import one_hot, binary_cross_entropy
 
-bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+# bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert_tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
 
 def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, hint_seqs, seq_len, pad_val=-1):
     '''
