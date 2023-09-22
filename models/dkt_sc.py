@@ -61,6 +61,7 @@ class LSTMModel(Module):
         self.bias = bias
         
         self.lstm = LSTMCell(self.input_dim, self.hidden_dim, self.bias)
+        self.fc = Linear(self.hidden_dim, self.output_dim)
         
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
@@ -94,8 +95,9 @@ class LSTMModel(Module):
         for seq in range(v.size(1)):
             hn, cn = self.lstm(v[:, seq, :], (hn, cn))
             outs.append(hn)
+            
         out = outs[-1].squeeze() #.squeeze() 제외
-        print(f"out: {outs[-1].shape}============================")
+        out = self.fc(out)
         return out
 
 
