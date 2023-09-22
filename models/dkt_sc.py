@@ -95,8 +95,8 @@ class LSTMModel(Module):
             hn, cn = self.lstm(v[:, seq, :], (hn, cn))
             outs.append(hn)
         
-        out = outs[-1].squeeze()
-        return out
+        # out = outs[-1].squeeze()
+        return outs
 
 
 class DKT_FUSION(Module):
