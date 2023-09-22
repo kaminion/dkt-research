@@ -68,9 +68,9 @@ class LSTMModel(Module):
         distilconfig = DistilBertConfig(output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         
-        self.at_emb_layer = Linear(768, self.hidden_size)
-        self.at2_emb_layer = Linear(512, self.hidden_size)
-        self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)
+        self.at_emb_layer = Linear(768, self.hidden_dim)
+        self.at2_emb_layer = Linear(512, self.hidden_dim)
+        self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
         
     def forward(self, x, at_s, at_t, at_m):
         h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
