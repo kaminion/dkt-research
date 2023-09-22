@@ -59,7 +59,7 @@ class LSTMCell(Module):
         # print(at.shape, x.shape, len(bt.hidden_states), bt.hidden_states)
         # v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         
-        gates = self.x2h(v) + self.h2h(hx)
+        gates = self.x2h(x) + self.h2h(hx)
         gates = gates.squeeze()
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
         
