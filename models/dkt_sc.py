@@ -50,10 +50,13 @@ class LSTMCell(Module):
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
+        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        #                attention_mask=at_t,
+        #                token_type_ids=at_m
+        #                ).last_hidden_state)
         at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                       attention_mask=at_t,
-                       token_type_ids=at_m
-                       ).last_hidden_state)
+                attention_mask=at_t
+                ).last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         
