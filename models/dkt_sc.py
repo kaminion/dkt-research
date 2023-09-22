@@ -28,37 +28,15 @@ class LSTMCell(Module):
         self.h2h = Linear(self.hidden_size, 4 * self.hidden_size, bias=self.bias)
         self.reset_parameters()
         
-        # BERT를 위한 추가 레이어
-        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig(output_hidden_states=True)
-        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
-        
-        self.at_emb_layer = Linear(768, self.hidden_size)
-        self.at2_emb_layer = Linear(512, self.hidden_size)
-        self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)
-        
     def reset_parameters(self):
         std = 1.0 / math.sqrt(self.hidden_size)
         for w in self.parameters():
             w.data.uniform_(-std, std)
         
-    def forward(self, x, hidden, at_s, at_t, at_m):
+    def forward(self, x, hidden):
         hx, cx = hidden
         x = x.view(-1, x.size(1))
-        
-        # 여기 BERT 추가해서 돌림
-        # BERT, 양 차원 모양 바꾸기 
-        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-        #                attention_mask=at_t,
-        #                token_type_ids=at_m
-        #                ).last_hidden_state)
-        # bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
-        # at = self.at_emb_layer(bt.last_hidden_state)
-        # at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
-        # print(at.shape, x.shape, len(bt.hidden_states), bt.hidden_states)
-        # v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        
+    
         gates = self.x2h(x) + self.h2h(hx)
         gates = gates.squeeze()
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
@@ -70,9 +48,7 @@ class LSTMCell(Module):
         
         cy = torch.mul(cx, forgetgate) + torch.mul(ingate, cellgate)
         hy = torch.mul(outgate, F.tanh(cy))
-        
-        print(f"================{hy.shape}=====================")
-        
+                
         return (hy, cy)
     
     
@@ -86,6 +62,16 @@ class LSTMModel(Module):
         
         self.lstm = LSTMCell(self.input_dim, self.hidden_dim, self.bias)
         
+        # BERT를 위한 추가 레이어
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        distilconfig = DistilBertConfig(output_hidden_states=True)
+        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
+        
+        self.at_emb_layer = Linear(768, self.hidden_size)
+        self.at2_emb_layer = Linear(512, self.hidden_size)
+        self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)
+        
     def forward(self, x, at_s, at_t, at_m):
         h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
         c0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
@@ -94,12 +80,22 @@ class LSTMModel(Module):
         cn = c0[0, :, :]
         hn = h0[0, :, :]
         
-        for seq in range(x.size(1)):
-            hn, cn = self.lstm(x[:, seq, :], (hn, cn), at_s, at_t, at_m)
+        # 여기 BERT 추가해서 돌림
+        # BERT, 양 차원 모양 바꾸기 
+        # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        #                attention_mask=at_t,
+        #                token_type_ids=at_m
+        #                ).last_hidden_state)
+        bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
+        at = self.at_emb_layer(bt.last_hidden_state)
+        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
+        
+        for seq in range(v.size(1)):
+            hn, cn = self.lstm(v[:, seq, :], (hn, cn))
             outs.append(hn)
         
         out = outs[-1].squeeze()
-        out = self.fc(out)
         return out
 
 
