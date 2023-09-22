@@ -94,6 +94,7 @@ class LSTMModel(Module):
         for seq in range(v.size(1)):
             hn, cn = self.lstm(v[:, seq, :], (hn, cn))
             outs.append(hn)
+        print(f"out: {outs[-1].shape}============================")
         out = outs[-1] #.squeeze() 제외
         return out
 
