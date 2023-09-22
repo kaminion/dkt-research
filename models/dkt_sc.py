@@ -31,7 +31,7 @@ class LSTMCell(Module):
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig('distilbert-base-uncased')
+        distilconfig = DistilBertConfig()
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         
         self.at_emb_layer = Linear(768, self.hidden_size)
