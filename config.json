@@ -36,8 +36,8 @@
         "size_m": 5
     },
     "sakt":{
-        "n": 100,
-        "d": 100,
+        "n": 50,
+        "d": 50,
         "num_attn_heads": 5,
         "dropout": 0.2
     },
