@@ -35,16 +35,15 @@ class SAKT(Module):
         self.E = Embedding(self.num_q, self.d)
         self.P = Parameter(torch.Tensor(self.n, self.d))
         
-        # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        self.at_emb_layer = Linear(768, self.d)
-        self.at2_emb_layer = Linear(512, self.d)
-        self.v_emb_layer = Linear(self.d * 2, self.d)
+        # # BERT for feature extraction
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # self.at_emb_layer = Linear(768, self.d)
+        # self.at2_emb_layer = Linear(512, self.d)
+        # self.v_emb_layer = Linear(self.d * 2, self.d)
         
-        self.e_layer = Linear(self.d, self.d)
-        self.a_layer = Linear(self.d, self.d)
-
+        # self.e_layer = Linear(self.d, self.d)
+        # self.a_layer = Linear(self.d, self.d)
 
         kaiming_normal_(self.P)
 
@@ -91,12 +90,6 @@ class SAKT(Module):
             diagonal=1
         ).bool()
         
-        # BERT, 양 차원 모양 바꾸기 
-        A = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                       attention_mask=at_t,
-                       token_type_ids=at_m
-                       ).last_hidden_state)
-        A = self.at2_emb_layer(A.permute(0, 2, 1)) # 어텐션에 들어가는 형식으로 바까줌
         M = M + P
         
         S, attn_weights = self.attn(E, M, M, attn_mask=causal_mask)
