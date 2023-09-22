@@ -58,6 +58,7 @@ class LSTMCell(Module):
                 attention_mask=at_t
                 ).last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        print(at.shape, x.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         
         gates = self.x2h(v) + self.h2h(hx)
