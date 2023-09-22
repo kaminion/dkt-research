@@ -31,7 +31,7 @@ class LSTMCell(Module):
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig()
+        distilconfig = DistilBertConfig(output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         
         self.at_emb_layer = Linear(768, self.hidden_size)
@@ -56,7 +56,7 @@ class LSTMCell(Module):
         bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
-        print(at.shape, x.shape, bt.hidden_states)
+        print(at.shape, x.shape, bt.hidden_states.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
         
         gates = self.x2h(v) + self.h2h(hx)
