@@ -70,16 +70,14 @@ class LSTMCell(Module):
     
     
 class LSTMModel(Module):
-    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, bias=True):
+    def __init__(self, input_dim, hidden_dim, layer_dim, bias=True):
         super(LSTMModel, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
-        self.output_dim = output_dim
         self.bias = bias
         
         self.lstm = LSTMCell(self.input_dim, self.hidden_dim, self.bias)
-        self.fc = Linear(self.hidden_dim, self.output_dim)
         
     def forward(self, x, at_s, at_t, at_m):
         h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
@@ -107,7 +105,7 @@ class DKT_FUSION(Module):
         
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTMModel(
-            self.emb_size, self.hidden_size, bias=True # concat 시 emb_size * 2
+            self.emb_size, self.hidden_size, 1, bias=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
