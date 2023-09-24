@@ -54,7 +54,9 @@ class LSTMCell(Module):
             hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
             hx = (hx, hx)
         
-        print(hx.shape, v.shape, x.shape)
+        print(v.shape, x.shape)
+        print(len(hx))
+        print(hx.shape)
             
         hx, cx = hx
     
