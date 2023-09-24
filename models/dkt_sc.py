@@ -53,13 +53,12 @@ class LSTMCell(Module):
     
     
 class LSTMModel(Module):
-    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, bias=True):
+    def __init__(self, input_dim, hidden_dim, layer_dim, bias=True):
         super(LSTMModel, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
         self.bias = bias
-        self.output_dim = output_dim
         
         self.rnn_cell_list = ModuleList()
         self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
@@ -67,7 +66,7 @@ class LSTMModel(Module):
         for l in range(1, layer_dim):
             self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
 
-        self.fc = Linear(self.hidden_dim, self.output_dim)
+        self.fc = Linear(self.hidden_dim, self.hidden_dim)
         
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
