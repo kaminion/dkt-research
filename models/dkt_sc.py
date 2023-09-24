@@ -42,7 +42,7 @@ class LSTMCell(Module):
         for w in self.parameters():
             w.data.uniform_(-std, std)
         
-    def forward(self, x, hx, at_s, at_t, at_m):
+    def forward(self, x, at_s, at_t, at_m, hx=None):
         
         bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
         at = self.at_emb_layer(bt.last_hidden_state)
