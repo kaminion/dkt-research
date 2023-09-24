@@ -54,11 +54,10 @@ class LSTMCell(Module):
             hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
             hx = (hx, hx)
         
-        print(v.shape, x.shape)
-        print(len(hx))
-        print(hx.shape)
             
         hx, cx = hx
+        print(v.shape, x.shape)
+        print(hx.shape)
     
         gates = self.x2h(v) + self.h2h(hx)
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
