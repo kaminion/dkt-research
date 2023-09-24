@@ -66,7 +66,7 @@ class LSTMModel(Module):
         self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
         
         for l in range(1, layer_dim):
-            self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
+            self.rnn_cell_list.append(LSTMCell(self.hidden_dim, self.hidden_dim, self.bias))
 
         self.fc = Linear(self.hidden_dim, self.hidden_dim)
         
@@ -110,6 +110,7 @@ class LSTMModel(Module):
             outs.append(hidden_l[0])
         
         out = outs[-1].squeeze() #.squeeze() 제외
+        print(":out:=====", outs[-1])
         out = self.fc(out)
         return out
 
