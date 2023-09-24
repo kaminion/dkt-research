@@ -33,9 +33,13 @@ class LSTMCell(Module):
         for w in self.parameters():
             w.data.uniform_(-std, std)
         
-    def forward(self, x, hidden):
-        hx, cx = hidden
-        x = x.view(-1, x.size(1))
+    def forward(self, x, hx):
+        
+        if hx is None:
+            hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
+            hx = (hx, hx)
+            
+        hx, cx = hx
     
         gates = self.x2h(x) + self.h2h(hx)
         gates = gates.squeeze()
