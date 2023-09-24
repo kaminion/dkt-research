@@ -50,8 +50,8 @@ class LSTMCell(Module):
         cellgate = torch.tanh(cellgate) # 셀 게이트에 탄젠트 적용
         outgate = torch.sigmoid(outgate) # 출력 게이트에 시그모이드 적용
         
-        cy = torch.mul(cx, forgetgate) + torch.mul(ingate, cellgate)
-        hy = torch.mul(outgate, torch.tanh(cy))
+        cy = cx * forgetgate + ingate * cellgate
+        hy = outgate * torch.tanh(cy)
                 
         return (hy, cy)
     
@@ -105,7 +105,7 @@ class LSTMModel(Module):
         for t in range(x.size(1)):
             for layer in range(self.layer_dim):
                 if layer == 0:
-                    hidden_l = self.rnn_cell_list[layer](x[:, t, :], (hidden[layer][0], hidden[layer][1]))
+                    hidden_l = self.rnn_cell_list[layer](v[:, t, :], (hidden[layer][0], hidden[layer][1]))
                 else:
                     hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
