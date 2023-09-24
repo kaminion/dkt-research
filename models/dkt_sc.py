@@ -41,7 +41,6 @@ class LSTMCell(Module):
         hx, cx = hx
     
         gates = self.x2h(x) + self.h2h(hx)
-        gates = gates.squeeze()
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
         
         ingate = torch.sigmoid(ingate) # 입력 게이트에 시그모이드 적용
@@ -123,8 +122,8 @@ class DKT_FUSION(Module):
         self.hidden_size = hidden_size
         
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
-        self.lstm_layer = LSTM(
-            self.emb_size, self.hidden_size, bias=True # concat 시 emb_size * 2
+        self.lstm_layer = LSTMModel(
+            self.emb_size, self.hidden_size, 1, bias=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
