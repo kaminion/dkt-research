@@ -1,5 +1,4 @@
 import os
-import math
 import numpy as np
 import torch
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, MultiheadAttention, LayerNorm, ModuleList
@@ -29,7 +28,7 @@ class LSTMCell(Module):
         self.reset_parameters()
         
     def reset_parameters(self):
-        std = 1.0 / math.sqrt(self.hidden_size)
+        std = 1.0 / np.sqrt(self.hidden_size)
         for w in self.parameters():
             w.data.uniform_(-std, std)
         
