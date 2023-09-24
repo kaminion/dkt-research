@@ -53,6 +53,8 @@ class LSTMCell(Module):
         if hx is None:
             hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
             hx = (hx, hx)
+        
+        print(hx.shape, v.shape, x.shape)
             
         hx, cx = hx
     
