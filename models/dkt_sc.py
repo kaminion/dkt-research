@@ -67,8 +67,6 @@ class LSTMModel(Module):
         
         for l in range(1, layer_dim):
             self.rnn_cell_list.append(LSTMCell(self.hidden_dim, self.hidden_dim, self.bias))
-
-        self.fc = Linear(self.hidden_dim, self.hidden_dim)
         
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
@@ -107,6 +105,7 @@ class LSTMModel(Module):
                 else:
                     hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
+            print("shape: ", hidden_l.shape)
             outs.append(hidden_l[0])
         
         out = outs[-1].squeeze() #.squeeze() 제외
