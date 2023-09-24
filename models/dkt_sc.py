@@ -27,12 +27,28 @@ class LSTMCell(Module):
         self.h2h = Linear(self.hidden_size, 4 * self.hidden_size, bias=self.bias)
         self.reset_parameters()
         
+        # BERT를 위한 추가 레이어
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        distilconfig = DistilBertConfig(output_hidden_states=True)
+        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
+        
+        self.at_emb_layer = Linear(768, self.hidden_dim)
+        self.at2_emb_layer = Linear(512, self.hidden_dim)
+        self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
+        
     def reset_parameters(self):
         std = 1.0 / np.sqrt(self.hidden_size)
         for w in self.parameters():
             w.data.uniform_(-std, std)
         
-    def forward(self, x, hx):
+    def forward(self, x, hx, at_s, at_t, at_m):
+        
+        bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
+        at = self.at_emb_layer(bt.last_hidden_state)
+        at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
+        
         
         if hx is None:
             hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
@@ -40,7 +56,7 @@ class LSTMCell(Module):
             
         hx, cx = hx
     
-        gates = self.x2h(x) + self.h2h(hx)
+        gates = self.x2h(v) + self.h2h(hx)
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
         
         ingate = torch.sigmoid(ingate) # 입력 게이트에 시그모이드 적용
@@ -122,8 +138,8 @@ class DKT_FUSION(Module):
         self.hidden_size = hidden_size
         
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
-        self.lstm_layer = LSTMModel(
-            self.emb_size, self.hidden_size, 1, bias=True # concat 시 emb_size * 2
+        self.lstm_layer = LSTMCell(
+            self.emb_size, self.hidden_size, bias=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
         self.dropout_layer = Dropout()
