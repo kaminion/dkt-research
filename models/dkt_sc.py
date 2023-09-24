@@ -110,7 +110,7 @@ class LSTMModel(Module):
             outs.append(hidden_l[0])
         
         out = outs[-1].squeeze() #.squeeze() 제외
-        print(":out:=====", outs[-1])
+        print(":out:=====", outs[-1].shape)
         out = self.fc(out)
         return out
 
