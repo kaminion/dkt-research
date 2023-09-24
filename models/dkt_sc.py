@@ -2,7 +2,7 @@ import os
 import math
 import numpy as np
 import torch
-from torch.nn import Module, Embedding, LSTM, Linear, Dropout, MultiheadAttention, LayerNorm
+from torch.nn import Module, Embedding, LSTM, Linear, Dropout, MultiheadAttention, LayerNorm, ModuleList
 from models.emb import STFTEmbedding
 import torch.nn.functional as F
 from torch.nn.functional import one_hot, binary_cross_entropy
@@ -53,14 +53,20 @@ class LSTMCell(Module):
     
     
 class LSTMModel(Module):
-    def __init__(self, input_dim, hidden_dim, layer_dim, bias=True):
+    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, bias=True):
         super(LSTMModel, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
         self.bias = bias
+        self.output_dim = output_dim
         
-        self.lstm = LSTMCell(self.input_dim, self.hidden_dim, self.bias)
+        self.rnn_cell_list = ModuleList()
+        self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
+        
+        for l in range(1, layer_dim):
+            self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
+
         self.fc = Linear(self.hidden_dim, self.output_dim)
         
         # BERT를 위한 추가 레이어
@@ -75,12 +81,9 @@ class LSTMModel(Module):
         
     def forward(self, x, at_s, at_t, at_m):
         h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
-        c0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
         
         outs = []
-        cn = c0[0, :, :]
-        hn = h0[0, :, :]
-        
+
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
         # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
@@ -91,11 +94,20 @@ class LSTMModel(Module):
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        
-        for seq in range(v.size(1)):
-            hn, cn = self.lstm(v[:, seq, :], (hn, cn))
-            outs.append(hn)
+
+        hidden = list()
+        for layer in range(self.layer_dim):
+            hidden.append((h0[layer, :, :], h0[layer, :, :]))
             
+        for t in range(x.size(1)):
+            for layer in range(self.layer_dim):
+                if layer == 0:
+                    hidden_l = self.rnn_cell_list[layer](v[:, t, :], (hidden[layer][0], hidden[layer][1]))
+                else:
+                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
+                hidden[layer] = hidden_l
+            outs.append(hidden_l[0])
+        
         out = outs[-1].squeeze() #.squeeze() 제외
         out = self.fc(out)
         return out
