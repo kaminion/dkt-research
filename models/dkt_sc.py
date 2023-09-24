@@ -33,9 +33,9 @@ class LSTMCell(Module):
         distilconfig = DistilBertConfig(output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         
-        self.at_emb_layer = Linear(768, self.hidden_dim)
-        self.at2_emb_layer = Linear(512, self.hidden_dim)
-        self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
+        self.at_emb_layer = Linear(768, self.hidden_size)
+        self.at2_emb_layer = Linear(512, self.hidden_size)
+        self.v_emb_layer = Linear(self.hidden_size * 2, self.hidden_size)
         
     def reset_parameters(self):
         std = 1.0 / np.sqrt(self.hidden_size)
