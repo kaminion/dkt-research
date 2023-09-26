@@ -97,6 +97,7 @@ class LSTMModel(Module):
         #                ).last_hidden_state)
         bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
         print(f"==================== bt: {bt.last_hidden_state}")
+        print(f"==================== bt_pure: {bt}")
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         print(f"==========at: {at}==================================")
@@ -138,7 +139,8 @@ class DKT_FUSION(Module):
         
     def forward(self, q, r, at_s, at_t, at_m):
         x = self.interaction_emb(q + self.num_q * r) # r텐서를 num_q 만큼 곱해서 확장함
-        print(f"============at: {at_s}===================")
+        print(f"============at: {at_t}===================")
+        print(f"============as: {at_s}===================")
         h = self.lstm_layer(x, at_s, at_t, at_m)
         
         y = self.out_layer(h)
