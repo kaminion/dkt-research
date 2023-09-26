@@ -9,7 +9,7 @@ if torch.cuda.is_available():
 else:
     from torch import FloatTensor, CharTensor, LongTensor
 
-from transformers import BertTokenizer, AutoTokenizer
+from transformers import BertTokenizer, DistilBertTokenizer
 from sklearn import metrics
 
 from sklearn.metrics import classification_report
