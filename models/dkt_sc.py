@@ -185,6 +185,8 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             h = torch.masked_select(hint_seqs, m)
 
             regularization, dis_impact = calculate_dis_impact(y, t, h)
+            
+            print(y.shape, t.shape)
 
             loss = binary_cross_entropy(y, t) 
             loss.backward()
