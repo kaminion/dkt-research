@@ -186,7 +186,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
 
             regularization, dis_impact = calculate_dis_impact(y, t, h)
             
-            print(y.shape, t.shape)
+            print(y, t)
 
             loss = binary_cross_entropy(y, t) 
             loss.backward()
