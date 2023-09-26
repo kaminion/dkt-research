@@ -107,7 +107,7 @@ class LSTMModel(Module):
         for t in range(x.size(1)):
             for layer in range(self.layer_dim):
                 if layer == 0:
-                    hidden_l = self.rnn_cell_list[layer](v[:, t, :], (hidden[layer][0], hidden[layer][1]))
+                    hidden_l = self.rnn_cell_list[layer](x[:, t, :], (hidden[layer][0], hidden[layer][1]))
                 else:
                     hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
