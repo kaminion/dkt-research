@@ -40,7 +40,7 @@ class LSTMCell(Module):
             hx = (hx, hx)
                    
         hx, cx = hx
-    
+        print(f"LSTM CELL: {x.shape}, {hx.shape}")
         gates = self.x2h(x) + self.h2h(hx)
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
         
