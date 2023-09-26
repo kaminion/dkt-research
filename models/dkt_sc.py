@@ -95,7 +95,7 @@ class LSTMModel(Module):
         #                attention_mask=at_t,
         #                token_type_ids=at_m
         #                ).last_hidden_state)
-        bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
+        bt = self.bertmodel(input_ids=at_s, attention_mask=at_m)
         print(f"==================== bt: {bt.last_hidden_state}")
         print(f"==================== bt_pure: {bt}")
         at = self.at_emb_layer(bt.last_hidden_state)

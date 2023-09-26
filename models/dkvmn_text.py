@@ -93,8 +93,8 @@ class SUBJ_DKVMN(Module):
 
         # BERT를 사용하지 않는다면 주석처리
         em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
-                       attention_mask=at_t,
-                       token_type_ids=at_m
+                       attention_mask=at_m,
+                       token_type_ids=at_t
                        ).last_hidden_state)
         em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
