@@ -36,7 +36,7 @@ class LSTMCell(Module):
     def forward(self, x, hx=None):
         
         if hx is None:
-            hx = Tensor(x.new_zeros(x.size(1), self.hidden_size))
+            hx = Tensor(x.new_zeros(x.size(0), x.size(1), self.hidden_size))
             hx = (hx, hx)
                    
         hx, cx = hx
@@ -97,8 +97,9 @@ class LSTMModel(Module):
         
         print(v.shape, hn.shape, x.shape)
 
-        for seq in range(x.size(1)):
-            hn, cn = self.lstm(v[:, seq, :], (hn, cn))
+        hn, cn = self.lstm(v, (hn, cn))
+        # for seq in range(x.size(1)):
+        #     hn, cn = self.lstm(v[:, seq, :], (hn, cn))
             
         print(hn.shape, cn.shape)
         
