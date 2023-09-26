@@ -96,10 +96,12 @@ class LSTMModel(Module):
         #                token_type_ids=at_m
         #                ).last_hidden_state)
         bt = self.bertmodel(input_ids=at_s, attention_mask=at_t)
+        print(f"==================== bt: {bt.last_hidden_state}")
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
+        print(f"==========at: {at}==================================")
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        print(f"==============v: {v} ===========================")
+        # print(f"==============v: {v} ===========================")
         hidden = list()
         for layer in range(self.layer_dim):
             hidden.append((h0[layer, :, :], h0[layer, :, :]))
@@ -113,7 +115,7 @@ class LSTMModel(Module):
                 hidden[layer] = hidden_l
             outs.append(hidden_l[0])
         output = torch.stack(outs, dim=-1)
-        print(f"=================================output: {output}=================")
+        # print(f"=================================output: {output}=================")
         # out = outs[-1].unsqueeze(-1) #.squeeze() => unsqueeze 제외
         # print(":out:=====", outs[-1].shape, len(outs), output.shape)
         return output
