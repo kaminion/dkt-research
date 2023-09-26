@@ -91,6 +91,8 @@ class LSTMModel(Module):
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
+        
+        print(v.shape, hn.shape, x.shape)
 
         for seq in range(x.size(1)):
             hn, cn = self.lstm(v[:, seq, :], (hn, cn))
