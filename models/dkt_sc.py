@@ -138,7 +138,7 @@ class DKT_FUSION(Module):
         
     def forward(self, q, r, at_s, at_t, at_m):
         x = self.interaction_emb(q + self.num_q * r) # r텐서를 num_q 만큼 곱해서 확장함
-        
+        print(f"============at: {at_s}===================")
         h = self.lstm_layer(x, at_s, at_t, at_m)
         
         y = self.out_layer(h)
