@@ -108,7 +108,7 @@ class LSTMModel(Module):
             print(hidden_l[0].shape)
             outs.append(hidden_l[0])
         
-        out = outs[-1].squeeze() #.squeeze() 제외
+        out = outs[-1].unsqueeze(-1) #.squeeze() => unsqueeze 제외
         print(":out:=====", outs[-1].shape, len(outs))
         return out
 
