@@ -8,7 +8,7 @@ from torch.nn import Module, Parameter, Embedding, Linear, Dropout, TransformerE
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
-from transformers import BertModel, BertConfig
+from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
 from models.utils import cal_acc_class
 
 
@@ -50,8 +50,10 @@ class SUBJ_DKVMN(Module):
         self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
 
         # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        distilconfig = DistilBertConfig(output_hidden_states=True)
+        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         self.at_emb_layer = Sequential(
             Linear(768, self.dim_s),
             ReLU(),
@@ -94,7 +96,7 @@ class SUBJ_DKVMN(Module):
         # BERT를 사용하지 않는다면 주석처리
         em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
-                       token_type_ids=at_t
+                    #    token_type_ids=at_t
                        ).last_hidden_state)
         em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
