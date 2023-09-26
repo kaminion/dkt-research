@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+from torch import Tensor
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, MultiheadAttention, LayerNorm, ModuleList
 from models.emb import STFTEmbedding
 import torch.nn.functional as F
@@ -35,7 +36,7 @@ class LSTMCell(Module):
     def forward(self, x, hx=None):
         
         if hx is None:
-            hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
+            hx = Tensor(x.new_zeros(x.size(0), self.hidden_size))
             hx = (hx, hx)
                    
         hx, cx = hx
@@ -75,8 +76,8 @@ class LSTMModel(Module):
         self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
         
     def forward(self, x, at_s, at_t, at_m):
-        h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
-        c0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
+        h0 = Tensor(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
+        c0 = Tensor(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
         
         hn = h0[0, :, :]
         cn = c0[0, :, :]
