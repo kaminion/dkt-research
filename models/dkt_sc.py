@@ -94,6 +94,8 @@ class LSTMModel(Module):
 
         for seq in range(x.size(1)):
             hn, cn = self.lstm(v[:, seq, :], (hn, cn))
+            
+        print(hn.shape, cn.shape)
         
         return hn
 
