@@ -62,11 +62,7 @@ class LSTMModel(Module):
         self.layer_dim = layer_dim
         self.bias = bias
         
-        self.rnn_cell_list = ModuleList()
-        self.rnn_cell_list.append(LSTMCell(self.input_dim, self.hidden_dim, self.bias))
-        
-        for l in range(1, layer_dim):
-            self.rnn_cell_list.append(LSTMCell(self.hidden_dim, self.hidden_dim, self.bias))
+        self.lstm = LSTMCell(input_dim, hidden_dim, True)
         
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
@@ -80,9 +76,11 @@ class LSTMModel(Module):
         
     def forward(self, x, at_s, at_t, at_m):
         h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
+        c0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
         
-        outs = []
-
+        hn = h0[0, :, :]
+        cn = c0[0, :, :]
+        
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
         # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
@@ -94,23 +92,10 @@ class LSTMModel(Module):
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
 
-        hidden = list()
-        for layer in range(self.layer_dim):
-            hidden.append((h0[layer, :, :], h0[layer, :, :]))
-            
-        for t in range(x.size(1)):
-            for layer in range(self.layer_dim):
-                if layer == 0:
-                    hidden_l = self.rnn_cell_list[layer](v[:, t, :], (hidden[layer][0], hidden[layer][1]))
-                else:
-                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
-                hidden[layer] = hidden_l
-            print(hidden_l[0].shape)
-            outs.append(hidden_l[0])
+        for seq in range(x.size(1)):
+            hn, cn = self.lstm(v[:, seq, :, (hn, cn)])
         
-        out = outs[-1].unsqueeze(-1) #.squeeze() => unsqueeze 제외
-        print(":out:=====", outs[-1].shape, len(outs))
-        return out
+        return hn
 
 
 class DKT_FUSION(Module):
