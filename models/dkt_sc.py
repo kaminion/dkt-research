@@ -105,8 +105,8 @@ class LSTMModel(Module):
                 else:
                     hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
-            outs = torch.stack([outs, hidden_l[0]], dim=-1)
-            # outs.append(hidden_l[0])
+            print(hidden_l.shape)
+            outs.append(hidden_l[0])
         
         out = outs[-1].squeeze() #.squeeze() 제외
         print(":out:=====", outs[-1].shape, len(outs))
