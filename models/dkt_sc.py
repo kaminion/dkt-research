@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import torch
-from torch import Tensor
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout, MultiheadAttention, LayerNorm, ModuleList
 from models.emb import STFTEmbedding
 import torch.nn.functional as F
@@ -36,11 +35,11 @@ class LSTMCell(Module):
     def forward(self, x, hx=None):
         
         if hx is None:
-            hx = Tensor(x.new_zeros(x.size(0), x.size(1), self.hidden_size))
+            hx = Variable(x.new_zeros(x.size(0), self.hidden_size))
             hx = (hx, hx)
                    
         hx, cx = hx
-        print(f"LSTM CELL: {x.shape}, {hx.shape}")
+    
         gates = self.x2h(x) + self.h2h(hx)
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
         
@@ -76,14 +75,10 @@ class LSTMModel(Module):
         self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
         
     def forward(self, x, at_s, at_t, at_m):
-        hn = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
-        cn = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
+        h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
         
-        # hn = h0[0, :, :]
-        # cn = c0[0, :, :]
-        
-        print(hn.shape)
-        
+        outs = []
+
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
         # at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
@@ -94,16 +89,24 @@ class LSTMModel(Module):
         at = self.at_emb_layer(bt.last_hidden_state)
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        
-        print(v.shape, hn.shape, x.shape)
 
-        hn, cn = self.lstm(v, (hn, cn))
-        # for seq in range(x.size(1)):
-        #     hn, cn = self.lstm(v[:, seq, :], (hn, cn))
+        hidden = list()
+        for layer in range(self.layer_dim):
+            hidden.append((h0[layer, :, :], h0[layer, :, :]))
             
-        print(hn.shape, cn.shape)
+        for t in range(x.size(1)):
+            for layer in range(self.layer_dim):
+                if layer == 0:
+                    hidden_l = self.rnn_cell_list[layer](v[:, t, :], (hidden[layer][0], hidden[layer][1]))
+                else:
+                    hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
+                hidden[layer] = hidden_l
+            outs.append(hidden_l[0])
+        output = torch.stack(outs, dim=0)
         
-        return hn
+        out = outs[-1].unsqueeze(-1) #.squeeze() => unsqueeze 제외
+        print(":out:=====", outs[-1].shape, len(outs), output.shape)
+        return out
 
 
 class DKT_FUSION(Module):
