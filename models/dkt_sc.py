@@ -76,11 +76,11 @@ class LSTMModel(Module):
         self.v_emb_layer = Linear(self.hidden_dim * 2, self.hidden_dim)
         
     def forward(self, x, at_s, at_t, at_m):
-        h0 = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
-        c0 = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
+        hn = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
+        cn = Tensor(torch.zeros(x.size(0), x.size(1), self.hidden_dim))
         
-        hn = h0[0, :, :]
-        cn = c0[0, :, :]
+        # hn = h0[0, :, :]
+        # cn = c0[0, :, :]
         
         print(hn.shape, h0.shape)
         
