@@ -62,8 +62,18 @@ class LSTMModel(Module):
         self.layer_dim = layer_dim
         self.bias = bias
         
-        self.lstm = LSTMCell(input_dim, hidden_dim, True)
+        self.rnn_cell_list = ModuleList()
         
+        self.rnn_cell_list.append(LSTMCell(self.input_dim,
+                                           self.hidden_dim,
+                                           self.bias))
+        
+        for i in range(1, self.layer_dim):
+            self.rnn_cell_list.append(LSTMCell(self.hidden_dim,
+                                               self.hidden_dim,
+                                               self.bias
+        ))
+                
         # BERT를 위한 추가 레이어
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
