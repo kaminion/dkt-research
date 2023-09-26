@@ -36,7 +36,7 @@ class LSTMCell(Module):
     def forward(self, x, hx=None):
         
         if hx is None:
-            hx = Tensor(x.new_zeros(x.size(0), self.hidden_size))
+            hx = Tensor(x.new_zeros(x.size(1), self.hidden_size))
             hx = (hx, hx)
                    
         hx, cx = hx
