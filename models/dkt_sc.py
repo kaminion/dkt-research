@@ -93,7 +93,7 @@ class LSTMModel(Module):
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
 
         for seq in range(x.size(1)):
-            hn, cn = self.lstm(v[:, seq, :, (hn, cn)])
+            hn, cn = self.lstm(v[:, seq, :], (hn, cn))
         
         return hn
 
