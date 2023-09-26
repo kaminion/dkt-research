@@ -82,7 +82,7 @@ class LSTMModel(Module):
         # hn = h0[0, :, :]
         # cn = c0[0, :, :]
         
-        print(hn.shape, h0.shape)
+        print(hn.shape)
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
