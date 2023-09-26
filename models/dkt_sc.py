@@ -105,7 +105,7 @@ class LSTMModel(Module):
                 else:
                     hidden_l = self.rnn_cell_list[layer](hidden[layer - 1][0], (hidden[layer][0], hidden[layer][1]))
                 hidden[layer] = hidden_l
-            print(hidden_l.shape)
+            print(hidden_l[0].shape)
             outs.append(hidden_l[0])
         
         out = outs[-1].squeeze() #.squeeze() 제외
