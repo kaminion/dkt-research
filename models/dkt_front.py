@@ -90,6 +90,9 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
     disparate_impacts = []
     accs = []
     q_accs = {}
+    precisions = []
+    recalls = []
+    f1s = []
 
     max_auc = 0
 
@@ -189,6 +192,9 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
             loss = binary_cross_entropy(y, t) 
 
+            precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
+            recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
+            f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
             
             print(f"[Test] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
 
@@ -197,7 +203,10 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             loss_mean.append(loss)
             accs.append(acc)
             q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+            precisions.append(precision)
+            recalls.append(recall)
+            f1s.append(f1)
 
         loss_means = np.mean(loss_mean) # 실제 로스 평균값을 구함
 
-    return aucs, loss_means, accs, q_accs, cnt
+    return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
