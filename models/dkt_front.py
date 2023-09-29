@@ -64,10 +64,10 @@ class DKT(Module):
         at = self.at2_emb_layer(at.permute(0, 2, 1)) # 6, 100, 100 형태로 바꿔줌.
 
         v = torch.relu(self.v_emb_layer(torch.concat([x, at], dim=-1)))
-        e = torch.sigmoid(self.e_layer(v))
-        a = torch.tanh(self.a_layer(v))
+        # e = torch.sigmoid(self.e_layer(v))
+        # a = torch.tanh(self.a_layer(v))
         
-        h, _ = self.lstm_layer(torch.concat([e, a], dim=-1))
+        h, _ = self.lstm_layer(v)
         
         y = self.out_layer(h)
         y = self.dropout_layer(y)
