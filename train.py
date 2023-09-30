@@ -241,54 +241,64 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
 
-    # Loader에 데이터 적재
+    kfold = KFold(n_splits=5, shuffle=True)
     
-    train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_pt, generator=torch.Generator(device=device)
-    )
-    valid_loader = DataLoader(
-        valid_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_pt, generator=torch.Generator(device=device)
-    )
-    test_loader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=True,
-        collate_fn=collate_pt, generator=torch.Generator(device=device)
-    )
+    for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset))
+        print(f"========={fold}==========")
+        # Sample elements randomly from a given list of ids, no replacement.
+        train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
+        test_subsampler = torch.utils.data.SubsetRandomSampler(test_ids)
 
-    if optimizer == "sgd":
-        opt = SGD(model.parameters(), learning_rate, momentum=0.9)
-    elif optimizer == "adam":
-        opt = Adam(model.parameters(), learning_rate)
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
-    opt.lr_scheduler = lr_scheduler
-
-    # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-    aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = \
-        train_model(
-            model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
+        # Loader에 데이터 적재
+    
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True,
+            collate_fn=collate_pt, generator=torch.Generator(device=device),
+            sampler=train_subsampler
         )
-    # DKT나 다른 모델 학습용
-    # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
-    
-    with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
-        pickle.dump(aucs, f)
-    with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
-        pickle.dump(loss_means, f)
-    with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
-        pickle.dump(accs, f)
-    with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
-        pickle.dump(q_accs, f)
-    with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
-        pickle.dump(q_cnts, f)
+        valid_loader = DataLoader(
+            valid_dataset, batch_size=batch_size, shuffle=True,
+            collate_fn=collate_pt, generator=torch.Generator(device=device),
+            sampler=test_subsampler
+        )
+        test_loader = DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=True,
+            collate_fn=collate_pt, generator=torch.Generator(device=device)
+        )
+
+        if optimizer == "sgd":
+            opt = SGD(model.parameters(), learning_rate, momentum=0.9)
+        elif optimizer == "adam":
+            opt = Adam(model.parameters(), learning_rate)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+        opt.lr_scheduler = lr_scheduler
+
+        # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
+        aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = \
+            train_model(
+                model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
+            )
+        # DKT나 다른 모델 학습용
+        # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
         
-    # precisions, recalls, f1s
-    with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
-        pickle.dump(precisions, f)
-    with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
-        pickle.dump(recalls, f)
-    with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
-        pickle.dump(f1s, f)
+        with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
+            pickle.dump(aucs, f)
+        with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
+            pickle.dump(loss_means, f)
+        with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
+            pickle.dump(accs, f)
+        with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
+            pickle.dump(q_accs, f)
+        with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
+            pickle.dump(q_cnts, f)
+        
+        # precisions, recalls, f1s
+        with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
+            pickle.dump(precisions, f)
+        with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
+            pickle.dump(recalls, f)
+        with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
+            pickle.dump(f1s, f)
         
 # program main entry point
 if __name__ == "__main__":

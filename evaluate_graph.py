@@ -29,7 +29,7 @@ for model_name in model_names:
     # print(len(file), len(file) / epochs)
     for i in range(0, div_cnt):
         aucs_np.append(np.array(file[i * epochs:i * epochs + epochs]))
-    max_values = np.average(file)
+    avg_values = np.average(file)
     # print(len(file))
     # div_cnt = int(len(file) / epochs)
     # for i in range(0, div_cnt):
@@ -38,7 +38,7 @@ for model_name in model_names:
     max_values = np.max(file)
     # print(len(max_values), max_values, maximum_AUC)
     std = np.std(file)
-    print(f"{model_name} [{file_name}]: {med_values}, {max_values}, {std}")
+    print(f"{model_name} [{file_name}]:, {avg_values}, {std}")
 
         # print(len(file) / 52)
 
