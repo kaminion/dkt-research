@@ -133,7 +133,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
                 )
                 max_auc = auc
 
-            print(f"[Train] num: {i}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
+        print(f"[Train] Epoch: {i}, AUC: {max_auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
 
         # with torch.no_grad():
         #     loss_mean = []
