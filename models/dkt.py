@@ -108,7 +108,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
 
             opt.zero_grad()
             y = torch.masked_select(y, m)
-            t = torch.masked_select(pidshift, m) # rshft 대신 pidshift
+            t = torch.masked_select(rshft_seqs, m) # rshft 대신 pidshift
             h = torch.masked_select(hint_seqs, m)
 
             regularization, dis_impact = calculate_dis_impact(y, t, h)
@@ -139,7 +139,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(pidshift, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
                 non_roc, sen_roc = calculate_dis_impact(y, t, h)
@@ -178,7 +178,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
             y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(pidshift, m).detach().cpu()
+            t = torch.masked_select(rshft_seqs, m).detach().cpu()
             h = torch.masked_select(hint_seqs, m).detach().cpu()
 
             _, dis_impact = calculate_dis_impact(y, t, h)
