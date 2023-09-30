@@ -123,7 +123,6 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
             acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-            loss_mean = np.mean(loss_mean)
             
             if auc > max_auc : 
                 torch.save(
