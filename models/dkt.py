@@ -97,7 +97,7 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
     for i in range(0, num_epochs):
         loss_mean = []
 
-        for data in train_loader:
+        for i, data in enumerate(train_loader):
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
@@ -118,49 +118,58 @@ def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs,
             opt.step()
 
             loss_mean.append(loss.detach().cpu().numpy())
-        auc = metrics.roc_auc_score(
-            y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
-        )
-        bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-        acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-        loss_mean = np.mean(loss_mean)
-
-        print(f"[Train] epoch: {i}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
-
-        with torch.no_grad():
-            loss_mean = []
-            for i, data in enumerate(valid_loader):
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-
-                model.eval()
-                
-                y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m)
-                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
-
-                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(rshft_seqs, m).detach().cpu()
-                h = torch.masked_select(hint_seqs, m).detach().cpu()
-
-                non_roc, sen_roc = calculate_dis_impact(y, t, h)
-
-                auc = metrics.roc_auc_score(
-                    y_true=t.numpy(), y_score=y.numpy()
-                )
-                bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-                acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-
-                loss = binary_cross_entropy(y, t) 
-                print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
-
-                if auc > max_auc : 
-                    torch.save(
-                        model.state_dict(),
-                        os.path.join(
-                            ckpt_path, "model.ckpt"
-                        )
+            auc = metrics.roc_auc_score(
+                y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
+            )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+            loss_mean = np.mean(loss_mean)
+            
+            if auc > max_auc : 
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        ckpt_path, "model.ckpt"
                     )
-                    max_auc = auc
+                )
+                max_auc = auc
+
+            print(f"[Train] num: {i}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
+
+        # with torch.no_grad():
+        #     loss_mean = []
+        #     for i, data in enumerate(valid_loader):
+        #         q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+
+        #         model.eval()
+                
+        #         y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m)
+        #         y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+
+        #         # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+        #         y = torch.masked_select(y, m).detach().cpu()
+        #         t = torch.masked_select(rshft_seqs, m).detach().cpu()
+        #         h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+        #         non_roc, sen_roc = calculate_dis_impact(y, t, h)
+
+        #         auc = metrics.roc_auc_score(
+        #             y_true=t.numpy(), y_score=y.numpy()
+        #         )
+        #         bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+        #         acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+
+        #         loss = binary_cross_entropy(y, t) 
+        #         print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+
+        #         if auc > max_auc : 
+        #             torch.save(
+        #                 model.state_dict(),
+        #                 os.path.join(
+        #                     ckpt_path, "model.ckpt"
+        #                 )
+        #             )
+        #             max_auc = auc
 
 
     # 실제 성능측정

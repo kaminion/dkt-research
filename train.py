@@ -253,18 +253,19 @@ def main(model_name, dataset_name, use_wandb):
         # Loader에 데이터 적재
     
         train_loader = DataLoader(
-            train_dataset, batch_size=batch_size,
+            dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=train_subsampler
         )
         valid_loader = DataLoader(
-            valid_dataset, batch_size=batch_size,
+            dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=test_subsampler
         )
         test_loader = DataLoader(
             test_dataset, batch_size=batch_size, shuffle=True,
-            collate_fn=collate_pt, generator=torch.Generator(device=device)
+            collate_fn=collate_pt, generator=torch.Generator(device=device),
+            sampler=test_subsampler
         )
 
         if optimizer == "sgd":
@@ -280,13 +281,13 @@ def main(model_name, dataset_name, use_wandb):
                 model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
             )
         aucs.extend(auc)
-        loss_means.extends(loss_mean)
-        accs.extends(acc)
-        q_accs.extends(q_acc)
-        q_cnts.extends(q_cnt)
-        precisions.extends(precision)
-        recalls.extends(recall)
-        f1s.extends(f1)
+        loss_means.extend(loss_mean)
+        accs.extend(acc)
+        q_accs.extend(q_acc)
+        q_cnts.extend(q_cnt)
+        precisions.extend(precision)
+        recalls.extend(recall)
+        f1s.extend(f1)
         
         # DKT나 다른 모델 학습용
         # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
