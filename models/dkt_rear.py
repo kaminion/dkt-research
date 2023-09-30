@@ -7,7 +7,7 @@ from torch.nn.functional import one_hot, binary_cross_entropy
 from sklearn import metrics
 from models.utils import calculate_dis_impact
 
-from transformers import BertModel, BertConfig
+from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
 from models.utils import cal_acc_class
 
 
@@ -22,9 +22,9 @@ class DKT(Module):
         self.emb_size = emb_size
         self.hidden_size = hidden_size
         
-        # BERT for feature extraction
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+       # BERT for feature extraction
+        distilconfig = DistilBertConfig(output_hidden_states=True)
+        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         self.at_emb_layer = Linear(768, self.emb_size)
         self.at2_emb_layer = Linear(512, self.emb_size)
         
