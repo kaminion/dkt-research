@@ -263,7 +263,7 @@ def main(model_name, dataset_name, use_wandb):
             sampler=test_subsampler
         )
         test_loader = DataLoader(
-            test_dataset, batch_size=batch_size, shuffle=True,
+            test_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=test_subsampler
         )
