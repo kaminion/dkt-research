@@ -243,7 +243,7 @@ def main(model_name, dataset_name, use_wandb):
 
     kfold = KFold(n_splits=5, shuffle=True)
     
-    for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset))
+    for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         print(f"========={fold}==========")
         # Sample elements randomly from a given list of ids, no replacement.
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
