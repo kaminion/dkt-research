@@ -241,7 +241,7 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
 
-    kfold = KFold(n_splits=5, shuffle=True)
+    kfold = KFold(n_splits=5)
     
     for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         print(f"========={fold}==========")
