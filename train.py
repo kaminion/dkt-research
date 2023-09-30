@@ -241,7 +241,8 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
 
-    kfold = KFold(n_splits=5)
+    kfold = KFold(n_splits=5, shuffle=True)
+    aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = []
     
     for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         print(f"========={fold}==========")
@@ -252,12 +253,12 @@ def main(model_name, dataset_name, use_wandb):
         # Loader에 데이터 적재
     
         train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True,
+            train_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=train_subsampler
         )
         valid_loader = DataLoader(
-            valid_dataset, batch_size=batch_size, shuffle=True,
+            valid_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=test_subsampler
         )
@@ -274,31 +275,40 @@ def main(model_name, dataset_name, use_wandb):
         opt.lr_scheduler = lr_scheduler
 
         # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-        aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = \
+        auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
             train_model(
-                model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, batch_size, opt, ckpt_path
+                model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
             )
+        aucs.extend(auc)
+        loss_means.extends(loss_mean)
+        accs.extends(acc)
+        q_accs.extends(q_acc)
+        q_cnts.extends(q_cnt)
+        precisions.extends(precision)
+        recalls.extends(recall)
+        f1s.extends(f1)
+        
         # DKT나 다른 모델 학습용
         # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
         
-        with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
-            pickle.dump(aucs, f)
-        with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
-            pickle.dump(loss_means, f)
-        with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
-            pickle.dump(accs, f)
-        with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
-            pickle.dump(q_accs, f)
-        with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
-            pickle.dump(q_cnts, f)
-        
-        # precisions, recalls, f1s
-        with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
-            pickle.dump(precisions, f)
-        with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
-            pickle.dump(recalls, f)
-        with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
-            pickle.dump(f1s, f)
+    with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
+        pickle.dump(aucs, f)
+    with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
+        pickle.dump(loss_means, f)
+    with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
+        pickle.dump(accs, f)
+    with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
+        pickle.dump(q_accs, f)
+    with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
+        pickle.dump(q_cnts, f)
+    
+    # precisions, recalls, f1s
+    with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
+        pickle.dump(precisions, f)
+    with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
+        pickle.dump(recalls, f)
+    with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
+        pickle.dump(f1s, f)
         
 # program main entry point
 if __name__ == "__main__":
