@@ -257,11 +257,11 @@ def main(model_name, dataset_name, use_wandb):
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=train_subsampler
         )
-        valid_loader = DataLoader(
-            dataset, batch_size=batch_size,
-            collate_fn=collate_pt, generator=torch.Generator(device=device),
-            sampler=test_subsampler
-        )
+        # valid_loader = DataLoader(
+        #     dataset, batch_size=batch_size,
+        #     collate_fn=collate_pt, generator=torch.Generator(device=device),
+        #     sampler=test_subsampler
+        # )
         test_loader = DataLoader(
             dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
@@ -278,7 +278,7 @@ def main(model_name, dataset_name, use_wandb):
         # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
         auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
             train_model(
-                model, train_loader, valid_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
+                model, train_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
             )
         aucs.extend(auc)
         loss_means.extend(loss_mean)

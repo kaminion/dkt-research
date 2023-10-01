@@ -74,7 +74,7 @@ class DKT(Module):
         return y
 
 
-def dkt_train(model, train_loader, valid_loader, test_loader, num_q, num_epochs, fold_num, opt, ckpt_path):
+def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt, ckpt_path):
     '''
         Args:
             train_loader: the PyTorch DataLoader instance for training
