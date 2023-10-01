@@ -97,7 +97,7 @@ def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt
     for epoch in range(0, num_epochs):
         loss_mean = []
 
-        for i, data in enumerate(train_loader):
+        for i, data in enumerate(train_loader, 0):
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             model.train()
@@ -175,7 +175,7 @@ def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     loss_mean = []
     with torch.no_grad():
-        for i, data in enumerate(test_loader):
+        for i, data in enumerate(test_loader, 0):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
             model.eval()
