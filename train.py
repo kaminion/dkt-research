@@ -281,7 +281,7 @@ def main(model_name, dataset_name, use_wandb):
                 model, train_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
             )
         aucs.extend(auc)
-        loss_means.extend(loss_mean)
+        loss_means.append(loss_mean)
         accs.extend(acc)
         q_accs.extend(q_acc)
         q_cnts.extend(q_cnt)
