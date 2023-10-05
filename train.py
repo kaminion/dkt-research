@@ -125,6 +125,18 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for i, data in enumerate(valid_loader):
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
+                # 현재 답안 예측
+                inpt_q = q.long()
+                pred_t = r
+                if mode == 1: # 다음 답안 예측
+                    inpt_q = qshft_seqs.long()
+                    pred_t = rshft_seqs
+                elif mode == 2: # 스코어 예측
+                    pred_t = pid_seqs
+                elif mode == 3: # 다음 스코어 예측
+                    inpt_q = qshft_seqs.long()
+                    pred_t = pidshift
+
                 model.eval()
                 
                 y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
@@ -414,10 +426,11 @@ def main(model_name, dataset_name, use_wandb):
         )
 
         # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-        auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
-            train_model(
-                model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode
-            )
+        # auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
+        train_model(
+            model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode
+        )
+        
         aucs.extend(auc)
         loss_means.append(loss_mean)
         accs.extend(acc)
