@@ -122,6 +122,11 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
     with torch.no_grad():
         loss_mean = []
+        
+        best_loss = 10 ** 9
+        patience_limit = 3
+        patience_check = 0
+        
         for i, data in enumerate(valid_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
@@ -153,7 +158,17 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
             acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-            loss = binary_cross_entropy(y, t) 
+            loss = binary_cross_entropy(y, t)
+            
+            if loss > best_loss:
+                patience_check += 1
+                
+                if patience_check >= patience_limit:
+                    break
+            else:
+                best_loss = loss
+                patience_check = 0
+            
             print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
 
             if auc > max_auc : 
