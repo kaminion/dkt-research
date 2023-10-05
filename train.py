@@ -8,7 +8,7 @@ import numpy as np
 
 import torch
 
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, ConcatDataset
 from torch.optim import SGD, Adam
 from torch.nn.functional import binary_cross_entropy, pad, one_hot
 from sklearn import metrics 
@@ -54,7 +54,7 @@ from models.saint_front import train_model as saint_front_train
 from models.saint_rear import train_model as saint_rear_train
 from models.akt import train_model as akt_train
 
-from models.utils import collate_fn, collate_ednet
+from models.utils import collate_fn, collate_ednet, cal_acc_class
 
 # Cross Validation
 from sklearn.model_selection import KFold
@@ -73,6 +73,56 @@ torch.cuda.manual_seed_all(seed)
 #if deterministic:
     #torch.backends.cudnn.deterministic = True
     #torch.backends.cudnn.benchmark = False
+    
+# Test function
+def test(model, test_loader, num_q, ckpt_path):
+       # 실제 성능측정
+    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
+    loss_mean = []
+    aucs = []
+    accs = []
+    precisions = []
+    recalls = []
+    f1s = []
+    
+    with torch.no_grad():
+        for i, data in enumerate(test_loader, 0):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+
+            model.eval()
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            q = torch.masked_select(q, m).detach().cpu()
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(rshft_seqs, m).detach().cpu()
+            h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+            precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
+            recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
+            f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
+            
+            loss = binary_cross_entropy(y, t) 
+            
+            print(f"[Test] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+
+            aucs.append(auc)
+            loss_mean.append(loss)
+            accs.append(acc)
+            q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+            precisions.append(precision)
+            recalls.append(recall)
+            f1s.append(f1)
+            
+        loss_means = np.mean(loss_mean) # 실제 로스 평균값을 구함
+
+    return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
 
 
 # main program
@@ -212,6 +262,9 @@ def main(model_name, dataset_name, use_wandb):
     train_dataset, valid_dataset, test_dataset = random_split(
         dataset, [train_size, valid_size, test_size], generator=torch.Generator(device=device)
     )
+    
+    # 연결
+    tv_dataset = ConcatDataset([train_dataset, valid_dataset])
 
     # pickle에 얼마만큼 분할했는지 저장
     if os.path.exists(os.path.join(dataset.dataset_dir, "train_indices.pkl")):
@@ -241,44 +294,39 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
 
-    kfold = KFold(n_splits=5, shuffle=True)
+    kfold = KFold(n_splits=5, shuffle=False)
     aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = [], [], [], [], [], [], [], []
     
-    for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
+    if optimizer == "sgd":
+        opt = SGD(model.parameters(), learning_rate, momentum=0.9)
+    elif optimizer == "adam":
+        opt = Adam(model.parameters(), learning_rate)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+    opt.lr_scheduler = lr_scheduler
+    
+    for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
         print(f"========={fold}==========")
         # Sample elements randomly from a given list of ids, no replacement.
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        test_subsampler = torch.utils.data.SubsetRandomSampler(test_ids)
+        valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
 
         # Loader에 데이터 적재
     
         train_loader = DataLoader(
-            dataset, batch_size=batch_size,
+            tv_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
             sampler=train_subsampler
         )
-        # valid_loader = DataLoader(
-        #     dataset, batch_size=batch_size,
-        #     collate_fn=collate_pt, generator=torch.Generator(device=device),
-        #     sampler=test_subsampler
-        # )
-        test_loader = DataLoader(
-            dataset, batch_size=batch_size,
+        valid_loader = DataLoader(
+            tv_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device),
-            sampler=test_subsampler
+            sampler=valid_subsampler
         )
-
-        if optimizer == "sgd":
-            opt = SGD(model.parameters(), learning_rate, momentum=0.9)
-        elif optimizer == "adam":
-            opt = Adam(model.parameters(), learning_rate)
-        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
-        opt.lr_scheduler = lr_scheduler
 
         # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
         auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
             train_model(
-                model, train_loader, test_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
+                model, train_loader, valid_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
             )
         aucs.extend(auc)
         loss_means.append(loss_mean)
@@ -291,7 +339,18 @@ def main(model_name, dataset_name, use_wandb):
         
         # DKT나 다른 모델 학습용
         # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
-        
+
+    # 마지막 테스트
+    test_loader = DataLoader(
+    test_dataset, batch_size=batch_size,
+    collate_fn=collate_pt, generator=torch.Generator(device=device),
+    )
+    
+    auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
+    test(
+        model, test_loader, dataset.num_q, ckpt_path
+    )
+
     with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
         pickle.dump(aucs, f)
     with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:

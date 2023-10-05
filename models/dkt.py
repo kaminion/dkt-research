@@ -74,7 +74,7 @@ class DKT(Module):
         return y
 
 
-def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt, ckpt_path):
+def dkt_train(model, train_loader, valid_loader, num_q, num_epochs, fold_num, opt, ckpt_path):
     '''
         Args:
             train_loader: the PyTorch DataLoader instance for training
@@ -83,14 +83,14 @@ def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt
             opt: the optimization to train this model
             ckpt_path: the path to save this model's parameters
     '''
-    aucs = []
-    loss_means = []  
-    disparate_impacts = []
-    accs = []
-    q_accs = {}
-    precisions = []
-    recalls = []
-    f1s = []
+    # aucs = []
+    # loss_means = []  
+    # disparate_impacts = []
+    # accs = []
+    # q_accs = {}
+    # precisions = []
+    # recalls = []
+    # f1s = []
     
     max_auc = 0
 
@@ -123,96 +123,87 @@ def dkt_train(model, train_loader, test_loader, num_q, num_epochs, fold_num, opt
             )
             bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
             acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-            
-            if auc > max_auc : 
-                torch.save(
-                    model.state_dict(),
-                    os.path.join(
-                        ckpt_path, "model.ckpt"
-                    )
-                )
-                max_auc = auc
 
-        print(f"[Train] Epoch: {epoch}, AUC: {max_auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
+        print(f"[Train] Epoch: {epoch}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
 
-        # with torch.no_grad():
-        #     loss_mean = []
-        #     for i, data in enumerate(valid_loader):
-        #         q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+        with torch.no_grad():
+            loss_mean = []
+            for i, data in enumerate(valid_loader):
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-        #         model.eval()
+                model.eval()
                 
-        #         y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m)
-        #         y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+                y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m)
+                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
-        #         # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-        #         y = torch.masked_select(y, m).detach().cpu()
-        #         t = torch.masked_select(rshft_seqs, m).detach().cpu()
-        #         h = torch.masked_select(hint_seqs, m).detach().cpu()
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-        #         non_roc, sen_roc = calculate_dis_impact(y, t, h)
+                non_roc, sen_roc = calculate_dis_impact(y, t, h)
 
-        #         auc = metrics.roc_auc_score(
-        #             y_true=t.numpy(), y_score=y.numpy()
-        #         )
-        #         bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-        #         acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
+                )
+                bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+                acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-        #         loss = binary_cross_entropy(y, t) 
-        #         print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+                loss = binary_cross_entropy(y, t) 
+                print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
 
-        #         if auc > max_auc : 
-        #             torch.save(
-        #                 model.state_dict(),
-        #                 os.path.join(
-        #                     ckpt_path, "model.ckpt"
-        #                 )
-        #             )
-        #             max_auc = auc
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    max_auc = auc
 
 
-    # 실제 성능측정
-    model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
-    loss_mean = []
-    with torch.no_grad():
-        for i, data in enumerate(test_loader, 0):
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+    # # 실제 성능측정
+    # model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
+    # loss_mean = []
+    # with torch.no_grad():
+    #     for i, data in enumerate(test_loader, 0):
+    #         q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            model.eval()
-            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
-            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+    #         model.eval()
+    #         y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+    #         y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
-            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            q = torch.masked_select(q, m).detach().cpu()
-            y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(rshft_seqs, m).detach().cpu()
-            h = torch.masked_select(hint_seqs, m).detach().cpu()
+    #         # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    #         q = torch.masked_select(q, m).detach().cpu()
+    #         y = torch.masked_select(y, m).detach().cpu()
+    #         t = torch.masked_select(rshft_seqs, m).detach().cpu()
+    #         h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-            _, dis_impact = calculate_dis_impact(y, t, h)
+    #         _, dis_impact = calculate_dis_impact(y, t, h)
 
-            auc = metrics.roc_auc_score(
-                y_true=t.numpy(), y_score=y.numpy()
-            )
-            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-            precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
-            recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
-            f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
+    #         auc = metrics.roc_auc_score(
+    #             y_true=t.numpy(), y_score=y.numpy()
+    #         )
+    #         bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+    #         acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+    #         precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
+    #         recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
+    #         f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
             
-            loss = binary_cross_entropy(y, t) 
+    #         loss = binary_cross_entropy(y, t) 
 
             
-            print(f"[Test] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+    #         print(f"[Test] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
 
-            aucs.append(auc)
-            disparate_impacts.append(dis_impact.detach().cpu())
-            loss_mean.append(loss)
-            accs.append(acc)
-            q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
-            precisions.append(precision)
-            recalls.append(recall)
-            f1s.append(f1)
+    #         aucs.append(auc)
+    #         disparate_impacts.append(dis_impact.detach().cpu())
+    #         loss_mean.append(loss)
+    #         accs.append(acc)
+    #         q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+    #         precisions.append(precision)
+    #         recalls.append(recall)
+    #         f1s.append(f1)
             
-        loss_means = np.mean(loss_mean) # 실제 로스 평균값을 구함
+    #     loss_means = np.mean(loss_mean) # 실제 로스 평균값을 구함
 
-    return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
+    # return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
