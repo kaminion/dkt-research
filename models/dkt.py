@@ -160,7 +160,7 @@ def dkt_train(model, train_loader, valid_loader, num_q, num_epochs, fold_num, op
                         )
                     )
                     max_auc = auc
-
+        print(f"========== Finished Epoch: {epoch} ============")
 
     # # 실제 성능측정
     # model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
