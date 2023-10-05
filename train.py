@@ -73,10 +73,11 @@ torch.cuda.manual_seed_all(seed)
 #if deterministic:
     #torch.backends.cudnn.deterministic = True
     #torch.backends.cudnn.benchmark = False
-    
+
+
 # Test function
-def test(model, test_loader, num_q, ckpt_path):
-       # 실제 성능측정
+def test_model(model, test_loader, num_q, ckpt_path, mode=0):
+    # 실제 성능측정, mode 0은 현재 답안 예측, 1은 다음 답안 예측, 2는 스코어 예측
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     loss_mean = []
     aucs = []
@@ -88,15 +89,26 @@ def test(model, test_loader, num_q, ckpt_path):
     with torch.no_grad():
         for i, data in enumerate(test_loader, 0):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-
+            
+            # 현재 답안 예측
+            inpt_r = r.long() 
+            pred_t = r
+            if mode == 1: # 다음 답안 예측
+                pred_t = rshft_seqs
+            elif mode == 2: # 스코어 예측
+                pred_t = pid_seqs
+            elif mode == 3: # 다음 스코어 예측
+                pred_t = pidshift
+                
+            
             model.eval()
-            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+            y = model(q.long(), inpt_r.long(), bert_s, bert_t, bert_m)
             y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
             y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(rshft_seqs, m).detach().cpu()
+            t = torch.masked_select(pred_t, m).detach().cpu()
             h = torch.masked_select(hint_seqs, m).detach().cpu()
 
             auc = metrics.roc_auc_score(
@@ -128,7 +140,7 @@ def test(model, test_loader, num_q, ckpt_path):
 # main program
 def main(model_name, dataset_name, use_wandb):
     KAKAO_CKPTS = "/app/outputs/"
-    # KAKAO_CKPTS = "./"
+    KAKAO_CKPTS = "./"
     if not os.path.isdir(f"{KAKAO_CKPTS}ckpts"): # original: ckpts
         os.mkdir(f"{KAKAO_CKPTS}ckpts")
     ckpt_path = os.path.join(f"{KAKAO_CKPTS}ckpts", model_name)
@@ -345,10 +357,22 @@ def main(model_name, dataset_name, use_wandb):
     test_dataset, batch_size=batch_size,
     collate_fn=collate_pt, generator=torch.Generator(device=device),
     )
+
+    # 현재꺼 예측, 다음꺼 예측, CSEDM 현재꺼 예측, 다음꺼 예측 이렇게 4개로 디자인
+    pred_next = ["dkt", "dkt+", "dkt-", "sakt", "sakt+", "sakt-"]
+    pred_now  = ["dkvmn", "dkvmn+", "dkvmn-", "akt", "saint", "saint+", "saint-"]
+    
+    mode = 0
+    if model_name in pred_next:
+        mode = 1
+    elif model_name in pred_now and dataset_name == "CSEDM":
+        mode = 2
+    elif model_name in pred_next and dataset_name == "CSEDM":
+        mode = 3
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
-    test(
-        model, test_loader, dataset.num_q, ckpt_path
+    test_model(
+        model, test_loader, dataset.num_q, ckpt_path, mode
     )
 
     with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
