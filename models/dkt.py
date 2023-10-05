@@ -133,7 +133,7 @@ def dkt_train(model, train_loader, valid_loader, num_q, num_epochs, fold_num, op
 
                 model.eval()
                 
-                y = model(q.long(), pid_seqs.long(), bert_s, bert_t, bert_m)
+                y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
                 y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
