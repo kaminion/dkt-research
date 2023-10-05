@@ -120,50 +120,50 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
         print(f"[Train] Epoch: {epoch}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
 
-        with torch.no_grad():
-            loss_mean = []
-            for i, data in enumerate(valid_loader):
-                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
+    with torch.no_grad():
+        loss_mean = []
+        for i, data in enumerate(valid_loader):
+            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                # 현재 답안 예측
-                inpt_q = q.long()
-                pred_t = r
-                if mode == 1: # 다음 답안 예측
-                    inpt_q = qshft_seqs.long()
-                    pred_t = rshft_seqs
-                elif mode == 2: # 스코어 예측
-                    pred_t = pid_seqs
-                elif mode == 3: # 다음 스코어 예측
-                    inpt_q = qshft_seqs.long()
-                    pred_t = pidshift
+            # 현재 답안 예측
+            inpt_q = q.long()
+            pred_t = r
+            if mode == 1: # 다음 답안 예측
+                inpt_q = qshft_seqs.long()
+                pred_t = rshft_seqs
+            elif mode == 2: # 스코어 예측
+                pred_t = pid_seqs
+            elif mode == 3: # 다음 스코어 예측
+                inpt_q = qshft_seqs.long()
+                pred_t = pidshift
 
-                model.eval()
-                
-                y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
-                y = (y * one_hot(inpt_q, num_q)).sum(-1)
+            model.eval()
+            
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
+            y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
-                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-                y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(pred_t, m).detach().cpu()
-                h = torch.masked_select(hint_seqs, m).detach().cpu()
+            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+            y = torch.masked_select(y, m).detach().cpu()
+            t = torch.masked_select(pred_t, m).detach().cpu()
+            h = torch.masked_select(hint_seqs, m).detach().cpu()
 
-                auc = metrics.roc_auc_score(
-                    y_true=t.numpy(), y_score=y.numpy()
-                )
-                bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-                acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+            auc = metrics.roc_auc_score(
+                y_true=t.numpy(), y_score=y.numpy()
+            )
+            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
 
-                loss = binary_cross_entropy(y, t) 
-                print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
+            loss = binary_cross_entropy(y, t) 
+            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
 
-                if auc > max_auc : 
-                    torch.save(
-                        model.state_dict(),
-                        os.path.join(
-                            ckpt_path, "model.ckpt"
-                        )
+            if auc > max_auc : 
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        ckpt_path, "model.ckpt"
                     )
-                    max_auc = auc
+                )
+                max_auc = auc
         print(f"========== Finished Epoch: {epoch} ============")
 
 
