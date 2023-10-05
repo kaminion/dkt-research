@@ -1,7 +1,7 @@
 {
     "train_config": {
         "batch_size": 15,
-        "num_epochs": 300,
+        "num_epochs": 100,
         "train_ratio": 0.6,
         "learning_rate": 0.0001,
         "optimizer": "adam",
@@ -9,7 +9,7 @@
     },
     "dkt": {
         "emb_size": 50,
-        "hidden_size": 200
+        "hidden_size": 50
     },
     "dkf": {
         "emb_size": 50,
