@@ -38,21 +38,21 @@ from models.qakt import QAKT
 from models.akt import AKT
 
 # 모델에 따른 train
-from models.dkt_sc import dkt_train as dkf_train
-from models.dkt_rear import dkt_train as dk_rear_train
-from models.dkt_front import dkt_train as dk_front_train
-from models.dkt import dkt_train
-from models.auto import auto_train
-from models.dkvmn_text import train_model as plus_train
-from models.dkvmn_back import train_model as minus_train
-from models.sakt import sakt_train
-from models.sakt_front import sakt_train as sakt_front_train
-from models.sakt_rear import sakt_train as sakt_rear_train
-from models.dkvmn import train_model as dkvmn_train
-from models.saint import train_model as saint_train
-from models.saint_front import train_model as saint_front_train
-from models.saint_rear import train_model as saint_rear_train
-from models.akt import train_model as akt_train
+# from models.dkt_sc import dkt_train as dkf_train
+# from models.dkt_rear import dkt_train as dk_rear_train
+# from models.dkt_front import dkt_train as dk_front_train
+# from models.dkt import dkt_train
+# from models.auto import auto_train
+# from models.dkvmn_text import train_model as plus_train
+# from models.dkvmn_back import train_model as minus_train
+# from models.sakt import sakt_train
+# from models.sakt_front import sakt_train as sakt_front_train
+# from models.sakt_rear import sakt_train as sakt_rear_train
+# from models.dkvmn import train_model as dkvmn_train
+# from models.saint import train_model as saint_train
+# from models.saint_front import train_model as saint_front_train
+# from models.saint_rear import train_model as saint_rear_train
+# from models.akt import train_model as akt_train
 
 from models.utils import collate_fn, collate_ednet, cal_acc_class
 
@@ -289,7 +289,7 @@ def main(model_name, dataset_name, use_wandb):
 
     
     ## 가변 벡터이므로 **
-    train_model = None
+    # train_model = None
     if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
     elif model_name == "dkf":
