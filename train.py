@@ -385,8 +385,7 @@ def main(model_name, dataset_name, use_wandb):
             pickle.dump(test_dataset.indices, f)
 
     kfold = KFold(n_splits=5, shuffle=False)
-    aucs, loss_means, accs, q_accs, q_cnts, precisions, recalls, f1s = [], [], [], [], [], [], [], []
-    
+        
     if optimizer == "sgd":
         opt = SGD(model.parameters(), learning_rate, momentum=0.9)
     elif optimizer == "adam":
@@ -431,15 +430,6 @@ def main(model_name, dataset_name, use_wandb):
             model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode
         )
         
-        aucs.extend(auc)
-        loss_means.append(loss_mean)
-        accs.extend(acc)
-        q_accs.extend(q_acc)
-        q_cnts.extend(q_cnt)
-        precisions.extend(precision)
-        recalls.extend(recall)
-        f1s.extend(f1)
-        
         # DKT나 다른 모델 학습용
         # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
 
@@ -455,23 +445,23 @@ def main(model_name, dataset_name, use_wandb):
     )
 
     with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
-        pickle.dump(aucs, f)
+        pickle.dump(auc, f)
     with open(os.path.join(ckpt_path, f"loss_means_{seed}.pkl"), "wb") as f:
-        pickle.dump(loss_means, f)
+        pickle.dump(loss_mean, f)
     with open(os.path.join(ckpt_path, f"accs_{seed}.pkl"), "wb") as f:
-        pickle.dump(accs, f)
+        pickle.dump(acc, f)
     with open(os.path.join(ckpt_path, f"q_accs_{seed}.pkl"), "wb") as f:
-        pickle.dump(q_accs, f)
+        pickle.dump(q_acc, f)
     with open(os.path.join(ckpt_path, f"q_cnts_{seed}.pkl"), "wb") as f:
-        pickle.dump(q_cnts, f)
+        pickle.dump(q_cnt, f)
     
     # precisions, recalls, f1s
     with open(os.path.join(ckpt_path, f"precisions_{seed}.pkl"), "wb") as f:
-        pickle.dump(precisions, f)
+        pickle.dump(precision, f)
     with open(os.path.join(ckpt_path, f"recalls_{seed}.pkl"), "wb") as f:
-        pickle.dump(recalls, f)
+        pickle.dump(recall, f)
     with open(os.path.join(ckpt_path, f"f1s_{seed}.pkl"), "wb") as f:
-        pickle.dump(f1s, f)
+        pickle.dump(f1, f)
         
 # program main entry point
 if __name__ == "__main__":
