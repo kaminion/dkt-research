@@ -220,7 +220,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
 
 # main program
 def main(model_name, dataset_name, use_wandb):
-    KAKAO_CKPTS = "/app/outputs/"
+    # KAKAO_CKPTS = "/app/outputs/"
     KAKAO_CKPTS = "./"
     if not os.path.isdir(f"{KAKAO_CKPTS}ckpts"): # original: ckpts
         os.mkdir(f"{KAKAO_CKPTS}ckpts")
