@@ -73,7 +73,7 @@ torch.cuda.manual_seed_all(seed)
 #if deterministic:
     #torch.backends.cudnn.deterministic = True
     #torch.backends.cudnn.benchmark = False
-
+    
 # Train function
 def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0):
     max_auc = 0
@@ -100,7 +100,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
             y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
-            y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
+            y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
             opt.zero_grad()
             y = torch.masked_select(y, m)
@@ -128,7 +128,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 model.eval()
                 
                 y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
-                y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
+                y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
@@ -171,7 +171,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             
             # 현재 답안 예측
-            inpt_q = r.long()
+            inpt_q = q.long()
             pred_t = r
             if mode == 1: # 다음 답안 예측
                 inpt_q = qshft_seqs.long()
@@ -184,7 +184,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
                 
             model.eval()
             y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
-            y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
+            y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
