@@ -79,13 +79,15 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
     max_auc = 0
 
     # 현재 답안 예측
-    inpt_r = r.long() 
+    inpt_q = q.long()
     pred_t = r
     if mode == 1: # 다음 답안 예측
+        inpt_q = qshft_seqs.long()
         pred_t = rshft_seqs
     elif mode == 2: # 스코어 예측
         pred_t = pid_seqs
     elif mode == 3: # 다음 스코어 예측
+        inpt_q = qshft_seqs.long()
         pred_t = pidshift
         
     for epoch in range(0, num_epochs):
@@ -97,12 +99,12 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             model.train()
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y = model(q.long(), inpt_r, bert_s, bert_t, bert_m) # r 대신 pid_seq
-            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # r 대신 pid_seq
+            y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
 
             opt.zero_grad()
             y = torch.masked_select(y, m)
-            t = torch.masked_select(rshft_seqs, m) # rshft 대신 pidshift
+            t = torch.masked_select(pred_t, m) # rshft 대신 pidshift
             h = torch.masked_select(hint_seqs, m)
 
             loss = binary_cross_entropy(y, t) 
@@ -126,11 +128,11 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 model.eval()
                 
                 y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
-                y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+                y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
 
                 # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
                 y = torch.masked_select(y, m).detach().cpu()
-                t = torch.masked_select(rshft_seqs, m).detach().cpu()
+                t = torch.masked_select(pred_t, m).detach().cpu()
                 h = torch.masked_select(hint_seqs, m).detach().cpu()
 
                 auc = metrics.roc_auc_score(
@@ -169,19 +171,20 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
             
             # 현재 답안 예측
-            inpt_r = r.long() 
+            inpt_q = r.long()
             pred_t = r
             if mode == 1: # 다음 답안 예측
+                inpt_q = qshft_seqs.long()
                 pred_t = rshft_seqs
             elif mode == 2: # 스코어 예측
                 pred_t = pid_seqs
             elif mode == 3: # 다음 스코어 예측
+                inpt_q = qshft_seqs.long()
                 pred_t = pidshift
                 
-            
             model.eval()
-            y = model(q.long(), inpt_r.long(), bert_s, bert_t, bert_m)
-            y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m)
+            y = (y * one_hot(inpt_q.long(), num_q)).sum(-1)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
             q = torch.masked_select(q, m).detach().cpu()
@@ -289,49 +292,34 @@ def main(model_name, dataset_name, use_wandb):
     train_model = None
     if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
-        train_model = dkt_train
     elif model_name == "dkf":
         model = torch.nn.DataParallel(DKT_F(dataset.num_q, **model_config)).to(device)
-        train_model = dkf_train
     elif model_name == "dkt-":
         model = torch.nn.DataParallel(DKT_FRONT(dataset.num_q, **model_config)).to(device)
-        train_model = dk_front_train
     elif model_name == "dkt+":
         model = torch.nn.DataParallel(DKT_REAR(dataset.num_q, **model_config)).to(device)
-        train_model = dk_rear_train
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
-        train_model = dkvmn_train
     elif model_name == 'dkvmn+':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
-        train_model = plus_train
     elif model_name == 'dkvmn-':
         model = torch.nn.DataParallel(BACK_DKVMN(dataset.num_q, **model_config)).to(device)
-        train_model = minus_train
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
-        train_model = sakt_train
     elif model_name == 'sakt-':
         model = torch.nn.DataParallel(SAKT_FRONT(dataset.num_q, **model_config)).to(device)
-        train_model = sakt_front_train
     elif model_name == 'sakt+':
         model = torch.nn.DataParallel(SAKT_REAR(dataset.num_q, **model_config)).to(device)
-        train_model = sakt_rear_train
     elif model_name == 'saint':
         model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
-        train_model = saint_train
     elif model_name == 'saint-':
         model = torch.nn.DataParallel(SAINT_FRONT(dataset.num_q, **model_config)).to(device)
-        train_model = saint_front_train
     elif model_name == "saint+":
         model = torch.nn.DataParallel(SAINT_REAR(dataset.num_q, **model_config)).to(device)
-        train_model = saint_rear_train
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
-        train_model = akt_train
     elif model_name == "auto":
         model = torch.nn.DataParallel(AUTO(num_q=dataset.num_q, **model_config)).to(device)
-        train_model = auto_train
     elif model_name == "mekt":
         model = MEKT(dataset.num_q, **model_config).to(device)
     elif model_name == "dirt":
@@ -394,6 +382,18 @@ def main(model_name, dataset_name, use_wandb):
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
     opt.lr_scheduler = lr_scheduler
     
+    # 현재꺼 예측, 다음꺼 예측, CSEDM 현재꺼 예측, 다음꺼 예측 이렇게 4개로 디자인
+    pred_next = ["dkt", "dkt+", "dkt-", "sakt", "sakt+", "sakt-"]
+    pred_now  = ["dkvmn", "dkvmn+", "dkvmn-", "akt", "saint", "saint+", "saint-"]
+    
+    mode = 0
+    if model_name in pred_next:
+        mode = 1
+    elif model_name in pred_now and dataset_name == "CSEDM":
+        mode = 2
+    elif model_name in pred_next and dataset_name == "CSEDM":
+        mode = 3
+        
     for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
         print(f"========={fold}==========")
         # Sample elements randomly from a given list of ids, no replacement.
@@ -416,7 +416,7 @@ def main(model_name, dataset_name, use_wandb):
         # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
         auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
             train_model(
-                model, train_loader, valid_loader, dataset.num_q, num_epochs, fold, opt, ckpt_path
+                model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode
             )
         aucs.extend(auc)
         loss_means.append(loss_mean)
@@ -435,18 +435,6 @@ def main(model_name, dataset_name, use_wandb):
     test_dataset, batch_size=batch_size,
     collate_fn=collate_pt, generator=torch.Generator(device=device),
     )
-
-    # 현재꺼 예측, 다음꺼 예측, CSEDM 현재꺼 예측, 다음꺼 예측 이렇게 4개로 디자인
-    pred_next = ["dkt", "dkt+", "dkt-", "sakt", "sakt+", "sakt-"]
-    pred_now  = ["dkvmn", "dkvmn+", "dkvmn-", "akt", "saint", "saint+", "saint-"]
-    
-    mode = 0
-    if model_name in pred_next:
-        mode = 1
-    elif model_name in pred_now and dataset_name == "CSEDM":
-        mode = 2
-    elif model_name in pred_next and dataset_name == "CSEDM":
-        mode = 3
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
     test_model(
