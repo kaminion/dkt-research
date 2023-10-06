@@ -3,6 +3,7 @@ import argparse
 import json
 import pickle
 import random
+from datetime import date
 
 import numpy as np
 
@@ -455,17 +456,25 @@ def main(model_name, dataset_name, use_wandb):
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
     def train_main():
         proj_name = f"{model_name}_{dataset_name}"
-
         num_epochs = train_config["num_epochs"]
-        if use_wandb == True:
-            wandb.init(project=proj_name, config=train_config)
-            num_epochs = wandb.config.epochs
-            opt.param_groups[0]['lr'] = wandb.config.learning_rate
-            model.hidden_size = wandb.config.hidden_size
-        
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             print(f"========={fold}==========")
+            
+            if use_wandb == True:
+                run_name = f"{date.today().isoformat()}-{fold:02}"
+                run = wandb.init(project=proj_name, name=run_name, reinit=True)
+                
+                assert run is not None
+                assert type(run) is wandb.sdk.wandb_run.Run
+                wandb.summary["cv_fold"] = fold
+                wandb.summary["num_cv_folds"] = kfold.n_splits
+                wandb.summary["cv_random_state"] = kfold.random_state
+                
+                num_epochs = wandb.config.epochs
+                opt.param_groups[0]['lr'] = wandb.config.learning_rate
+                model.hidden_size = wandb.config.hidden_size
+            
             # Sample elements randomly from a given list of ids, no replacement.
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
@@ -488,6 +497,8 @@ def main(model_name, dataset_name, use_wandb):
             train_model(
                 model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, wandb
             )
+            
+            wandb.finish()
             
             # DKT나 다른 모델 학습용
             # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
@@ -513,7 +524,7 @@ def main(model_name, dataset_name, use_wandb):
         }
         
         sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
-        wandb.agent(sweep_id, function=train_main)
+        wandb.agent(sweep_id, function=train_main, project=proj_name, allow_multi_run=True)
     else:
         train_main()
 
