@@ -291,7 +291,7 @@ def main(model_name, dataset_name, use_wandb):
             },
             'parameters': {
                 'epochs': {'values': [100, 300]},
-                'lr': {'max': 0.01, 'min': 0.001},
+                'learning_rate': {'max': 0.01, 'min': 0.001},
                 'hidden_size': {'values': [50, 100]}
             }
         }
