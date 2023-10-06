@@ -453,11 +453,13 @@ def main(model_name, dataset_name, use_wandb):
         mode = 3
     
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
-    def train_main():
-        wandb.init(project=proj_name, config=train_config)
-        num_epochs = wandb.config.epochs
-        opt.param_groups[0]['lr'] = wandb.config.learning_rate
-        model.hidden_size = wandb.config.hidden_size
+    def train_main(proj_name=''):
+        
+        if use_wandb == True:
+            wandb.init(project=proj_name, config=train_config)
+            num_epochs = wandb.config.epochs
+            opt.param_groups[0]['lr'] = wandb.config.learning_rate
+            model.hidden_size = wandb.config.hidden_size
         
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
@@ -509,7 +511,7 @@ def main(model_name, dataset_name, use_wandb):
         }
         
         sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
-        wandb.agent(sweep_id, function=train_main)
+        wandb.agent(sweep_id, function=train_main(proj_name))
     else:
         train_main()
 
