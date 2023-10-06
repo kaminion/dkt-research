@@ -40,7 +40,7 @@ class DKT(Module):
             self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
-        self.dropout_layer = Dropout()
+        self.dropout_layer = Dropout(0.2)
 
 
     def forward(self, q, r, at_s, at_t, at_m):
