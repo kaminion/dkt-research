@@ -16,11 +16,12 @@ class DKT(Module):
         Args: 
             num_q: total number of questions in given the dataset
     '''
-    def __init__(self, num_q, emb_size, hidden_size):
+    def __init__(self, num_q, emb_size, hidden_size, dropout=0.2):
         super(DKT, self).__init__()
         self.num_q = num_q
         self.emb_size = emb_size
         self.hidden_size = hidden_size
+        self.dropout = dropout
         
         # BERT for feature extraction
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
@@ -40,7 +41,7 @@ class DKT(Module):
             self.emb_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
         self.out_layer = Linear(self.hidden_size, self.num_q) # 원래 * 2이었으나 축소
-        self.dropout_layer = Dropout(0.2)
+        self.dropout_layer = Dropout(self.dropout)
 
 
     def forward(self, q, r, at_s, at_t, at_m):

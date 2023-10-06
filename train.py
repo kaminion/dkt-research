@@ -278,17 +278,25 @@ def main(model_name, dataset_name, use_wandb):
     if use_wandb == True:
         # wandb setting
         os.environ['WANDB_API_KEY'] = WANDB_API_KEY
-        wandb.init(project=f"{model_name}_{dataset_name}", config=train_config)
+        proj_name = f"{model_name}_{dataset_name}"
+        wandb.init(project=proj_name, config=train_config)
 
         # sweep config // optimization을 위한
         sweep_config = {
-            'method': 'grid'
+            'method': 'grid',
+            'name': f'DKT-{model_name}',
+            'metric': {
+                'name': 'loss',
+                'goal': 'minimize'
+            },
+            'parameters': {
+                'epochs': {'values': [100, 300]},
+                'lr': {'max': 0.01, 'min': 0.001},
+                'hidden_size': {'values': [50, 100]}
+            }
         }
-
-        metric = {
-            'name': 'loss',
-            'goal': 'minimize'
-        }
+        
+        wandb.sweep(sweep=sweep_config, project=proj_name)
 
 
     # 데이터셋 추가 가능
