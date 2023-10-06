@@ -453,8 +453,9 @@ def main(model_name, dataset_name, use_wandb):
         mode = 3
     
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
-    def train_main(proj_name=''):
+    def train_main():
         proj_name = f"{model_name}_{dataset_name}"
+
         num_epochs = train_config["num_epochs"]
         if use_wandb == True:
             wandb.init(project=proj_name, config=train_config)
