@@ -456,7 +456,7 @@ def main(model_name, dataset_name, use_wandb):
     def train_main():
         wandb.init(project=proj_name, config=train_config)
         num_epochs = wandb.config.epochs
-        opt.param_groups[0]['lr'] = wandb.config.lr
+        opt.param_groups[0]['lr'] = wandb.config.learning_rate
         model.hidden_size = wandb.config.hidden_size
         
 
@@ -503,7 +503,7 @@ def main(model_name, dataset_name, use_wandb):
             },
             'parameters': {
                 'epochs': {'values': [100, 300]},
-                'lr': {'max': 1e-2, 'min': 1e-3},
+                'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
             }
         }
