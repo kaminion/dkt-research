@@ -431,8 +431,6 @@ def main(model_name, dataset_name, use_wandb):
             os.path.join(dataset.dataset_dir, "test_indices.pkl"), "wb"
         ) as f:
             pickle.dump(test_dataset.indices, f)
-
-    kfold = KFold(n_splits=wandb.config.kfold, shuffle=False)
         
     if optimizer == "sgd":
         opt = SGD(model.parameters(), learning_rate, momentum=0.9)
@@ -457,6 +455,7 @@ def main(model_name, dataset_name, use_wandb):
     def train_main():
         proj_name = f"{model_name}_{dataset_name}"
         num_epochs = train_config["num_epochs"]
+        kfold = KFold(n_splits=wandb.config.kfold, shuffle=False)
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             print(f"========={fold}==========")
