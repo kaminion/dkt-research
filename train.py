@@ -455,14 +455,15 @@ def main(model_name, dataset_name, use_wandb):
     def train_main():
         proj_name = f"{model_name}_{dataset_name}"
         num_epochs = train_config["num_epochs"]
-        kfold = KFold(n_splits=wandb.config.kfold, shuffle=False)
+        kfold = KFold(n_splits=5, shuffle=True)
+        cv_name = f"{wandb.util.generate_id()}"
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             print(f"========={fold}==========")
             
             if use_wandb == True:
                 run_name = f"{date.today().isoformat()}-{fold:02}"
-                run = wandb.init(project=proj_name, name=run_name, reinit=True)
+                run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
                 
                 assert run is not None
                 assert type(run) is wandb.sdk.wandb_run.Run
@@ -518,8 +519,7 @@ def main(model_name, dataset_name, use_wandb):
             'parameters': {
                 'epochs': {'values': [100, 300]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
-                'hidden_size': {'values': [50, 100]},
-                'kfold': {'values': [5]}
+                'hidden_size': {'values': [50, 100]}
             }
         }
         
