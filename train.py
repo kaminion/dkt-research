@@ -432,7 +432,7 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
 
-    kfold = KFold(n_splits=5, shuffle=False)
+    kfold = KFold(n_splits=wandb.config.kfold, shuffle=False)
         
     if optimizer == "sgd":
         opt = SGD(model.parameters(), learning_rate, momentum=0.9)
@@ -519,12 +519,13 @@ def main(model_name, dataset_name, use_wandb):
             'parameters': {
                 'epochs': {'values': [100, 300]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
-                'hidden_size': {'values': [50, 100]}
+                'hidden_size': {'values': [50, 100]},
+                'kfold': {'values': [5]}
             }
         }
         
         sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
-        wandb.agent(sweep_id, function=train_main, project=proj_name, allow_multi_run=True)
+        wandb.agent(sweep_id, function=train_main, project=proj_name)
     else:
         train_main()
 
