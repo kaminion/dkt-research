@@ -75,11 +75,13 @@ torch.cuda.manual_seed_all(seed)
     #torch.backends.cudnn.benchmark = False
     
 # Train function
-def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0):
+def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0, wandb=None):
     max_auc = 0
         
     for epoch in range(0, num_epochs):
+        auc_mean = []
         loss_mean = []
+        acc_mean = []
 
         for i, data in enumerate(train_loader, 0):
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
@@ -112,16 +114,32 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             opt.step()
 
             loss_mean.append(loss.detach().cpu().numpy())
-            auc = metrics.roc_auc_score(
+            auc_mean.append(metrics.roc_auc_score(
                 y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
-            )
+            ))
             bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+            acc_mean.append(metrics.accuracy_score(t.detach().cpu().numpy(), bin_y))
+            
+        
+        loss_mean = np.mean(loss_mean)
+        auc_mean = np.mean(auc_mean)
+        acc_mean = np.mean(acc_mean)
+        
+        if(wandb != None):
+            wandb.log(
+            {
+                "epoch": epoch,
+                "train_auc": acc_mean, 
+                "train_acc": auc_mean,
+                "train_loss": loss_mean
+            })
 
-        print(f"[Train] Epoch: {epoch}, AUC: {auc}, acc: {acc}, Loss Mean: {np.mean(loss_mean)}")
+        print(f"[Train] Epoch: {epoch}, AUC: {auc_mean}, acc: {acc_mean}, Loss Mean: {np.mean(loss_mean)}")
 
     with torch.no_grad():
+        auc_mean = []
         loss_mean = []
+        acc_mean = []
         
         best_loss = 10 ** 9
         patience_limit = 3
@@ -155,10 +173,14 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
             )
+            auc_mean.append(auc)
+            
             bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
             acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+            acc_mean.append(acc)
 
             loss = binary_cross_entropy(y, t)
+            loss_mean.append(loss)
             
             if loss > best_loss:
                 patience_check += 1
@@ -169,8 +191,6 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 best_loss = loss
                 patience_check = 0
             
-            print(f"[Valid] number: {i}, AUC: {auc}, ACC: {acc}, loss: {loss}")
-
             if auc > max_auc : 
                 torch.save(
                     model.state_dict(),
@@ -179,6 +199,21 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                     )
                 )
                 max_auc = auc
+                
+        loss_mean = np.mean(loss_mean)
+        auc_mean = np.mean(auc_mean)
+        acc_mean = np.mean(acc_mean)
+        
+        if(wandb != None):
+            wandb.log(
+            {
+                "epoch": epoch,
+                "val_auc": acc_mean, 
+                "val_acc": auc_mean,
+                "val_loss": loss_mean
+            })
+        print(f"[Valid] {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
+
         print(f"========== Finished Epoch: {epoch} ============")
 
 
@@ -241,6 +276,19 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
             f1s.append(f1)
             
         loss_means = np.mean(loss_mean) # 실제 로스 평균값을 구함
+        auc_mean = np.mean(aucs)
+        acc_mean = np.mean(accs)
+        f1_mean = np.mean(f1s)
+        
+        if(wandb != None):
+            wandb.log(
+            {
+                "test_auc": auc_mean, 
+                "test_acc": acc_mean,
+                "test_loss": loss_mean
+            })
+        
+        print(f"[Total Test]: AUC: {auc_mean}, ACC: {acc_mean}, F1 Score: {f1_mean} ")
 
     return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
 
@@ -274,30 +322,6 @@ def main(model_name, dataset_name, use_wandb):
     learning_rate = train_config["learning_rate"]
     optimizer = train_config["optimizer"] # can be sgd, adam
     seq_len = train_config["seq_len"] # 샘플링 할 갯수
-    
-    if use_wandb == True:
-        # wandb setting
-        os.environ['WANDB_API_KEY'] = WANDB_API_KEY
-        proj_name = f"{model_name}_{dataset_name}"
-        wandb.init(project=proj_name, config=train_config)
-
-        # sweep config // optimization을 위한
-        sweep_config = {
-            'method': 'grid',
-            'name': f'DKT-{model_name}',
-            'metric': {
-                'name': 'loss',
-                'goal': 'minimize'
-            },
-            'parameters': {
-                'epochs': {'values': [100, 300]},
-                'learning_rate': {'max': 0.01, 'min': 0.001},
-                'hidden_size': {'values': [50, 100]}
-            }
-        }
-        
-        wandb.sweep(sweep=sweep_config, project=proj_name)
-
 
     # 데이터셋 추가 가능
     collate_pt = collate_fn
@@ -427,34 +451,68 @@ def main(model_name, dataset_name, use_wandb):
         mode = 2
     elif model_name in pred_next and dataset_name == "CSEDM":
         mode = 3
-        
-    for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
-        print(f"========={fold}==========")
-        # Sample elements randomly from a given list of ids, no replacement.
-        train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
-
-        # Loader에 데이터 적재
     
-        train_loader = DataLoader(
-            tv_dataset, batch_size=batch_size,
-            collate_fn=collate_pt, generator=torch.Generator(device=device),
-            sampler=train_subsampler
-        )
-        valid_loader = DataLoader(
-            tv_dataset, batch_size=batch_size,
-            collate_fn=collate_pt, generator=torch.Generator(device=device),
-            sampler=valid_subsampler
-        )
-
-        # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
-        # auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
-        train_model(
-            model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode
-        )
+    # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
+    def train_main():
+        wandb.init(project=proj_name, config=train_config)
+        num_epochs = wandb.config.epochs
+        opt.param_groups[0]['lr'] = wandb.config.lr
+        model.hidden_size = wandb.config.hidden_size
         
-        # DKT나 다른 모델 학습용
-        # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
+
+        for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
+            print(f"========={fold}==========")
+            # Sample elements randomly from a given list of ids, no replacement.
+            train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
+            valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
+
+            # Loader에 데이터 적재
+        
+            train_loader = DataLoader(
+                tv_dataset, batch_size=batch_size,
+                collate_fn=collate_pt, generator=torch.Generator(device=device),
+                sampler=train_subsampler
+            )
+            valid_loader = DataLoader(
+                tv_dataset, batch_size=batch_size,
+                collate_fn=collate_pt, generator=torch.Generator(device=device),
+                sampler=valid_subsampler
+            )
+
+            # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
+            # auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
+            train_model(
+                model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, wandb
+            )
+            
+            # DKT나 다른 모델 학습용
+            # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
+    
+    if use_wandb == True:
+        # wandb setting
+        os.environ['WANDB_API_KEY'] = WANDB_API_KEY
+        proj_name = f"{model_name}_{dataset_name}"
+
+        # sweep config // optimization을 위한
+        sweep_config = {
+            'method': 'grid',
+            'name': f'DKT-{model_name}',
+            'metric': {
+                'name': 'val_auc',
+                'goal': 'maximize'
+            },
+            'parameters': {
+                'epochs': {'values': [100, 300]},
+                'lr': {'max': 1e-2, 'min': 1e-3},
+                'hidden_size': {'values': [50, 100]}
+            }
+        }
+        
+        sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
+        wandb.agent(sweep_id, function=train_main)
+    else:
+        train_main()
+
 
     # 마지막 테스트
     test_loader = DataLoader(
