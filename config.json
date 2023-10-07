@@ -18,11 +18,13 @@
     },
     "dkt-": {
         "emb_size": 50,
-        "hidden_size": 100
+        "hidden_size": 100,
+        "dropout": 0.2
     },
     "dkt+": {
         "emb_size": 50,
-        "hidden_size": 100
+        "hidden_size": 100,
+        "dropout": 0.2
     },
     "dkvmn":{
         "dim_s": 50,
