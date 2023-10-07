@@ -220,6 +220,9 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
 # Test function
 def test_model(model, test_loader, num_q, ckpt_path, mode=0):
+    
+    wandb.init(group=f"test_{date.today().isoformat()}_{mode}", name=f"{mode}", reinit=True)
+    
     # 실제 성능측정, mode 0은 현재 답안 예측, 1은 다음 답안 예측, 2는 스코어 예측
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
     loss_mean = []
@@ -288,6 +291,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
                 "test_acc": acc_mean,
                 "test_loss": loss_mean
             })
+            wandb.finish()
         
         print(f"[Total Test]: AUC: {auc_mean}, ACC: {acc_mean}, F1 Score: {f1_mean} ")
 
@@ -462,7 +466,7 @@ def main(model_name, dataset_name, use_wandb):
             print(f"========={fold}==========")
             
             if use_wandb == True:
-                run_name = f"{date.today().isoformat()}-{fold:02}"
+                run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
                 run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
                 
                 assert run is not None
