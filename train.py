@@ -463,6 +463,7 @@ def main(model_name, dataset_name, use_wandb):
         cv_name = f"{wandb.util.generate_id()}"
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
+            fold += 1
             print(f"========={fold}==========")
             
             if use_wandb == True:
