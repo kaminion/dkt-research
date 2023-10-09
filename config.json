@@ -8,7 +8,7 @@
         "seq_len": 200
     },
     "dkt": {
-        "emb_size": 50,
+        "emb_size": 200,
         "hidden_size": 50,
         "dropout": 0.2
     },
