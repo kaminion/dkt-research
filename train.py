@@ -219,9 +219,10 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
 
 # Test function
-def test_model(model, test_loader, num_q, ckpt_path, mode=0):
+def test_model(model, test_loader, num_q, ckpt_path, mode=0, use_wandb=False):
     
-    wandb.init(group=f"test_{date.today().isoformat()}_{mode}", name=f"{mode}", reinit=True)
+    if(use_wandb != False):
+        wandb.init(group=f"test_{date.today().isoformat()}_{mode}", name=f"{mode}", reinit=True)
     
     # 실제 성능측정, mode 0은 현재 답안 예측, 1은 다음 답안 예측, 2는 스코어 예측
     model.load_state_dict(torch.load(os.path.join(ckpt_path, "model.ckpt")))
@@ -284,7 +285,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0):
         acc_mean = np.mean(accs)
         f1_mean = np.mean(f1s)
         
-        if(wandb != None):
+        if(use_wandb != False):
             wandb.log(
             {
                 "test_auc": auc_mean, 
@@ -460,13 +461,13 @@ def main(model_name, dataset_name, use_wandb):
         proj_name = f"{model_name}_{dataset_name}"
         num_epochs = train_config["num_epochs"]
         kfold = KFold(n_splits=5, shuffle=True)
-        cv_name = f"{wandb.util.generate_id()}"
 
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             fold += 1
             print(f"========={fold}==========")
             
             if use_wandb == True:
+                cv_name = f"{wandb.util.generate_id()}"
                 run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
                 run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
                 
@@ -503,7 +504,8 @@ def main(model_name, dataset_name, use_wandb):
                 model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, wandb
             )
             
-            wandb.finish()
+            if(use_wandb == True):
+                wandb.finish()
             
             # DKT나 다른 모델 학습용
             # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
@@ -542,7 +544,7 @@ def main(model_name, dataset_name, use_wandb):
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
     test_model(
-        model, test_loader, dataset.num_q, ckpt_path, mode
+        model, test_loader, dataset.num_q, ckpt_path, mode, use_wandb
     )
 
     with open(os.path.join(ckpt_path, f"aucs_{seed}.pkl"), "wb") as f:
