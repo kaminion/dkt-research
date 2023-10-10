@@ -524,7 +524,7 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'epochs': {'values': [100, 300]},
+                'epochs': {'values': [300]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
             }
