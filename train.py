@@ -547,23 +547,23 @@ def main(model_name, dataset_name, use_wandb):
         model, test_loader, dataset.num_q, ckpt_path, mode, use_wandb
     )
 
-    with open(os.path.join(ckpt_path, f"{seq_len}_aucs_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_aucs_{seed}.pkl"), "wb") as f:
         pickle.dump(auc, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_loss_means_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_loss_means_{seed}.pkl"), "wb") as f:
         pickle.dump(loss_mean, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_accs_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_accs_{seed}.pkl"), "wb") as f:
         pickle.dump(acc, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_q_accs_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_q_accs_{seed}.pkl"), "wb") as f:
         pickle.dump(q_acc, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_q_cnts_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_q_cnts_{seed}.pkl"), "wb") as f:
         pickle.dump(q_cnt, f)
     
     # precisions, recalls, f1s
-    with open(os.path.join(ckpt_path, f"{seq_len}_precisions_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_precisions_{seed}.pkl"), "wb") as f:
         pickle.dump(precision, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_recalls_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_recalls_{seed}.pkl"), "wb") as f:
         pickle.dump(recall, f)
-    with open(os.path.join(ckpt_path, f"{seq_len}_f1s_{seed}.pkl"), "wb") as f:
+    with open(os.path.join(ckpt_path, f"{optimizer}_{seq_len}_f1s_{seed}.pkl"), "wb") as f:
         pickle.dump(f1, f)
         
 # program main entry point
