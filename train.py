@@ -253,7 +253,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode=0, use_wandb=False):
             y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
             # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            q = torch.masked_select(q, m).detach().cpu()
+            q = torch.masked_select(inpt_q, m).detach().cpu()
             y = torch.masked_select(y, m).detach().cpu()
             t = torch.masked_select(pred_t, m).detach().cpu()
             h = torch.masked_select(hint_seqs, m).detach().cpu()
