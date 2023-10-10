@@ -130,8 +130,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             wandb.log(
             {
                 "epoch": epoch,
-                "train_auc": acc_mean, 
-                "train_acc": auc_mean,
+                "train_auc": auc_mean, 
+                "train_acc": acc_mean,
                 "train_loss": loss_mean
             })
 
@@ -209,8 +209,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             wandb.log(
             {
                 "epoch": epoch,
-                "val_auc": acc_mean, 
-                "val_acc": auc_mean,
+                "val_auc": auc_mean, 
+                "val_acc": acc_mean,
                 "val_loss": loss_mean
             })
         print(f"[Valid] {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
@@ -522,7 +522,7 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'epochs': {'values': [100, 300]},
+                'epochs': {'values': [100]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
             }
