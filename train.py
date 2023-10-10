@@ -83,11 +83,10 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
         auc_mean = []
         loss_mean = []
         acc_mean = []
-
+        model.train()
         for i, data in enumerate(train_loader, 0):
             # q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, proc_atshft_sentences
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-            model.train()
             
             # 현재 답안 예측
             inpt_q = q.long()
@@ -136,84 +135,84 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             })
 
         print(f"[Train] Epoch: {epoch}, AUC: {auc_mean}, acc: {acc_mean}, Loss Mean: {np.mean(loss_mean)}")
-
-    with torch.no_grad():
-        auc_mean = []
-        loss_mean = []
-        acc_mean = []
         
-        best_loss = 10 ** 9
-        patience_limit = 3
-        patience_check = 0
-        
-        for i, data in enumerate(valid_loader):
-            q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-
-            # 현재 답안 예측
-            inpt_q = q.long()
-            pred_t = r
-            if mode == 1: # 다음 답안 예측
-                inpt_q = qshft_seqs.long()
-                pred_t = rshft_seqs
-            elif mode == 2: # 스코어 예측
-                pred_t = pid_seqs
-            elif mode == 3: # 다음 스코어 예측
-                inpt_q = qshft_seqs.long()
-                pred_t = pidshift
-
-            model.eval()
+        model.eval()
+        with torch.no_grad():
+            auc_mean = []
+            loss_mean = []
+            acc_mean = []
             
-            y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
-            y = (y * one_hot(inpt_q, num_q)).sum(-1)
-
-            # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
-            y = torch.masked_select(y, m).detach().cpu()
-            t = torch.masked_select(pred_t, m).detach().cpu()
-            h = torch.masked_select(hint_seqs, m).detach().cpu()
-
-            auc = metrics.roc_auc_score(
-                y_true=t.numpy(), y_score=y.numpy()
-            )
-            auc_mean.append(auc)
+            best_loss = 10 ** 9
+            patience_limit = 3
+            patience_check = 0
             
-            bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
-            acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
-            acc_mean.append(acc)
+            for i, data in enumerate(valid_loader):
+                q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            loss = binary_cross_entropy(y, t)
-            loss_mean.append(loss)
-            
-            if loss > best_loss:
-                patience_check += 1
+                # 현재 답안 예측
+                inpt_q = q.long()
+                pred_t = r
+                if mode == 1: # 다음 답안 예측
+                    inpt_q = qshft_seqs.long()
+                    pred_t = rshft_seqs
+                elif mode == 2: # 스코어 예측
+                    pred_t = pid_seqs
+                elif mode == 3: # 다음 스코어 예측
+                    inpt_q = qshft_seqs.long()
+                    pred_t = pidshift
+
                 
-                if patience_check >= patience_limit:
-                    break
-            else:
-                best_loss = loss
-                patience_check = 0
-            
-            if auc > max_auc : 
-                torch.save(
-                    model.state_dict(),
-                    os.path.join(
-                        ckpt_path, "model.ckpt"
-                    )
+                y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
+                y = (y * one_hot(inpt_q, num_q)).sum(-1)
+
+                # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+                y = torch.masked_select(y, m).detach().cpu()
+                t = torch.masked_select(pred_t, m).detach().cpu()
+                h = torch.masked_select(hint_seqs, m).detach().cpu()
+
+                auc = metrics.roc_auc_score(
+                    y_true=t.numpy(), y_score=y.numpy()
                 )
-                max_auc = auc
+                auc_mean.append(auc)
                 
-        loss_mean = np.mean(loss_mean)
-        auc_mean = np.mean(auc_mean)
-        acc_mean = np.mean(acc_mean)
-        
-        if(wandb != None):
-            wandb.log(
-            {
-                "epoch": epoch,
-                "val_auc": auc_mean, 
-                "val_acc": acc_mean,
-                "val_loss": loss_mean
-            })
-        print(f"[Valid] {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
+                bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+                acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+                acc_mean.append(acc)
+
+                loss = binary_cross_entropy(y, t)
+                loss_mean.append(loss)
+                
+                if loss > best_loss:
+                    patience_check += 1
+                    
+                    if patience_check >= patience_limit:
+                        break
+                else:
+                    best_loss = loss
+                    patience_check = 0
+                
+                if auc > max_auc : 
+                    torch.save(
+                        model.state_dict(),
+                        os.path.join(
+                            ckpt_path, "model.ckpt"
+                        )
+                    )
+                    max_auc = auc
+                    
+            loss_mean = np.mean(loss_mean)
+            auc_mean = np.mean(auc_mean)
+            acc_mean = np.mean(acc_mean)
+            
+            if(wandb != None):
+                wandb.log(
+                {
+                    "epoch": epoch,
+                    "val_auc": auc_mean, 
+                    "val_acc": acc_mean,
+                    "val_loss": loss_mean
+                })
+            print(f"[Valid] Epoch: {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
 
         print(f"========== Finished Epoch: {epoch} ============")
 
