@@ -421,6 +421,8 @@ def cal_acc_class(q_seqs, y_true, y_pred):
     
     return accs, question_cnts
 
-def search_df(u_df, q_df):
-    
-    return 
+def reset_weight(m):
+    for layer in m.children():
+        if hasattr(layer, 'reset_parameters'):
+            print(f'Reset trainable parameters of layer = {layer}')
+            layer.reset_parameters()

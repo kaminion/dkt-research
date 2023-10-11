@@ -55,10 +55,10 @@ from models.akt import AKT
 # from models.saint_rear import train_model as saint_rear_train
 # from models.akt import train_model as akt_train
 
-from models.utils import collate_fn, collate_ednet, cal_acc_class
+from models.utils import collate_fn, collate_ednet, cal_acc_class, reset_weight
 
 # Cross Validation
-from sklearn.model_selection import StratifiedKFold as KFold
+from sklearn.model_selection import KFold
 
 # wandb
 import wandb
@@ -464,24 +464,24 @@ def main(model_name, dataset_name, use_wandb):
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             fold += 1
             print(f"========={fold}==========")
+            model.apply(reset_weight)
             
-            if use_wandb == True:
-                cv_name = f"{wandb.util.generate_id()}"
-                run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
-                run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
-                
-                assert run is not None
-                assert type(run) is wandb.sdk.wandb_run.Run
-                wandb.summary["cv_fold"] = fold
-                wandb.summary["num_cv_folds"] = kfold.n_splits
-                wandb.summary["cv_random_state"] = kfold.random_state
-                
-                num_epochs = wandb.config.epochs
-                opt.param_groups[0]['lr'] = wandb.config.learning_rate
-                
-                # 모델 파라미터
-                model.hidden_size = wandb.config.hidden_size
-                model.dropout = wandb.config.dropout
+            cv_name = f"{wandb.util.generate_id()}"
+            run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
+            run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
+            
+            assert run is not None
+            assert type(run) is wandb.sdk.wandb_run.Run
+            wandb.summary["cv_fold"] = fold
+            wandb.summary["num_cv_folds"] = kfold.n_splits
+            wandb.summary["cv_random_state"] = kfold.random_state
+            
+            num_epochs = wandb.config.epochs
+            opt.param_groups[0]['lr'] = wandb.config.learning_rate
+            
+            # 모델 파라미터
+            model.hidden_size = wandb.config.hidden_size
+            model.dropout = wandb.config.dropout
             
             # Sample elements randomly from a given list of ids, no replacement.
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
@@ -506,8 +506,7 @@ def main(model_name, dataset_name, use_wandb):
                 model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
             )
             
-            if(use_wandb == True):
-                wandb.finish()
+            wandb.finish()
             
             # DKT나 다른 모델 학습용
             # aucs, loss_means = model.train_model(train_loader, test_loader, num_epochs, opt, ckpt_path)
@@ -536,8 +535,9 @@ def main(model_name, dataset_name, use_wandb):
         sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
         wandb.agent(sweep_id, function=train_main, project=proj_name)
     else:
-        train_main()
-
+        train_model(
+            model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
+        )
 
     # 마지막 테스트
     test_loader = DataLoader(
