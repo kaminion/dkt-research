@@ -76,7 +76,7 @@ torch.cuda.manual_seed_all(seed)
     #torch.backends.cudnn.benchmark = False
     
 # Train function
-def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0, wandb=None):
+def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0, use_wandb=False):
     max_auc = 0
         
     for epoch in range(0, num_epochs):
@@ -125,7 +125,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
         auc_mean = np.mean(auc_mean)
         acc_mean = np.mean(acc_mean)
         
-        if(wandb != None):
+        if(use_wandb != False):
             wandb.log(
             {
                 "epoch": epoch,
@@ -204,7 +204,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             auc_mean = np.mean(auc_mean)
             acc_mean = np.mean(acc_mean)
             
-            if(wandb != None):
+            if(use_wandb != False):
                 wandb.log(
                 {
                     "epoch": epoch,
@@ -503,7 +503,7 @@ def main(model_name, dataset_name, use_wandb):
             # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
             # auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
             train_model(
-                model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, wandb
+                model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
             )
             
             if(use_wandb == True):
