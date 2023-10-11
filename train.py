@@ -58,7 +58,7 @@ from models.akt import AKT
 from models.utils import collate_fn, collate_ednet, cal_acc_class
 
 # Cross Validation
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold as KFold
 
 # wandb
 import wandb
