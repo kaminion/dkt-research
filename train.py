@@ -478,7 +478,10 @@ def main(model_name, dataset_name, use_wandb):
                 
                 num_epochs = wandb.config.epochs
                 opt.param_groups[0]['lr'] = wandb.config.learning_rate
+                
+                # 모델 파라미터
                 model.hidden_size = wandb.config.hidden_size
+                model.dropout = wandb.config.dropout
             
             # Sample elements randomly from a given list of ids, no replacement.
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
@@ -523,7 +526,8 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'epochs': {'values': [300]},
+                'epochs': {'values': [100]},
+                'dropout': {'values': [0.2, 0.5]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
             }
