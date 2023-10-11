@@ -563,7 +563,7 @@ def main(model_name, dataset_name, use_wandb):
             },
             'parameters': {
                 'epochs': {'values': [100]},
-                'seed': {'values': [13, 42]}
+                'seed': {'values': [13, 42]},
                 'dropout': {'values': [0.2, 0.5]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
