@@ -3,14 +3,14 @@
         "batch_size": 24,
         "num_epochs": 100,
         "train_ratio": 0.6,
-        "learning_rate": 0.001,
+        "learning_rate": 0.0001,
         "optimizer": "adam",
         "seq_len": 200
     },
     "dkt": {
         "emb_size": 256,
-        "hidden_size": 50,
-        "dropout": 0.2
+        "hidden_size": 100,
+        "dropout": 0.5
     },
     "dkf": {
         "emb_size": 50,
