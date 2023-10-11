@@ -488,7 +488,6 @@ def main(model_name, dataset_name, use_wandb):
             valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
 
             # Loader에 데이터 적재
-        
             train_loader = DataLoader(
                 tv_dataset, batch_size=batch_size,
                 collate_fn=collate_pt, generator=torch.Generator(device=device),
@@ -534,7 +533,15 @@ def main(model_name, dataset_name, use_wandb):
         
         sweep_id = wandb.sweep(sweep=sweep_config, project=proj_name)
         wandb.agent(sweep_id, function=train_main, project=proj_name)
-    else:
+    else: 
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size,
+            collate_fn=collate_pt, generator=torch.Generator(device=device)
+        )
+        valid_loader = DataLoader(
+            valid_dataset, batch_size=batch_size,
+            collate_fn=collate_pt, generator=torch.Generator(device=device)
+        )
         train_model(
             model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
         )
