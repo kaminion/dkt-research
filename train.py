@@ -78,7 +78,7 @@ torch.cuda.manual_seed_all(seed)
 # Train function
 def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0, use_wandb=False):
     max_auc = 0
-    loss_mean = []
+    loss_means = []
     aucs = []
     accs = []
     precisions = []
