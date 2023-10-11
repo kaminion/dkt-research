@@ -233,7 +233,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 })
                 
             aucs.append(auc_mean)
-            loss_mean.append(loss_mean)
+            loss_means.append(loss_mean)
             accs.append(acc_mean)
             precisions.append(precision_mean)
             recalls.append(recall_mean)
