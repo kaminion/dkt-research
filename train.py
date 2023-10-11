@@ -78,6 +78,12 @@ torch.cuda.manual_seed_all(seed)
 # Train function
 def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_path, mode=0, use_wandb=False):
     max_auc = 0
+    loss_mean = []
+    aucs = []
+    accs = []
+    precisions = []
+    recalls = []
+    f1s = []
         
     for epoch in range(0, num_epochs):
         auc_mean = []
@@ -182,6 +188,14 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 loss = binary_cross_entropy(y, t)
                 loss_mean.append(loss)
                 
+                aucs.append(auc)
+                loss_mean.append(loss)
+                accs.append(acc)
+                q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+                precisions.append(precision)
+                recalls.append(recall)
+                f1s.append(f1)
+                
                 if loss > best_loss:
                     patience_check += 1
                     
@@ -216,6 +230,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
         print(f"========== Finished Epoch: {epoch} ============")
 
+    return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
 
 # Test function
 def test_model(model, test_loader, num_q, ckpt_path, mode=0, use_wandb=False):
@@ -470,6 +485,11 @@ def main(model_name, dataset_name, use_wandb):
             run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
             run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
             
+            random.seed(wandb.config.seed)
+            np.random.seed(wandb.config.seed)
+            torch.manual_seed(wandb.config.seed)
+            torch.cuda.manual_seed_all(wandb.config.seed)
+            
             assert run is not None
             assert type(run) is wandb.sdk.wandb_run.Run
             wandb.summary["cv_fold"] = fold
@@ -501,9 +521,27 @@ def main(model_name, dataset_name, use_wandb):
 
             # 모델에서 미리 정의한 함수로 AUCS와 LOSS 계산    
             # auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
-            train_model(
+            aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s = train_model(
                 model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
             )
+            
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_aucs_{seed}.pkl"), "wb") as f:
+                pickle.dump(auc, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_loss_means_{seed}.pkl"), "wb") as f:
+                pickle.dump(loss_mean, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_accs_{seed}.pkl"), "wb") as f:
+                pickle.dump(acc, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_q_accs_{seed}.pkl"), "wb") as f:
+                pickle.dump(q_acc, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_q_cnts_{seed}.pkl"), "wb") as f:
+                pickle.dump(q_cnt, f)
+            # precisions, recalls, f1s
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_precisions_{seed}.pkl"), "wb") as f:
+                pickle.dump(precision, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_recalls_{seed}.pkl"), "wb") as f:
+                pickle.dump(recall, f)
+            with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_f1s_{seed}.pkl"), "wb") as f:
+                pickle.dump(f1, f)
             
             wandb.finish()
             
@@ -525,6 +563,7 @@ def main(model_name, dataset_name, use_wandb):
             },
             'parameters': {
                 'epochs': {'values': [100]},
+                'seed': {'values': [13, 42]}
                 'dropout': {'values': [0.2, 0.5]},
                 'learning_rate': {'values': [1e-2, 1e-3]},
                 'hidden_size': {'values': [50, 100]}
