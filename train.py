@@ -64,7 +64,7 @@ from sklearn.model_selection import KFold
 import wandb
 
 # seed 고정
-seed = 13
+seed = 42
 #deterministic = True
 
 random.seed(seed)
