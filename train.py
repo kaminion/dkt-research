@@ -142,11 +142,14 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
         print(f"[Train] Epoch: {epoch}, AUC: {auc_mean}, acc: {acc_mean}, Loss Mean: {np.mean(loss_mean)}")
         
-        model.eval()
         with torch.no_grad():
+            model.eval()
             auc_mean = []
             loss_mean = []
             acc_mean = []
+            precision_mean = []
+            recall_mean = []
+            f1_mean = []
             
             best_loss = 10 ** 9
             patience_limit = 3
@@ -183,18 +186,17 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 
                 bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
                 acc = metrics.accuracy_score(t.detach().cpu().numpy(), bin_y)
+                precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
+                recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
+                f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
+                
                 acc_mean.append(acc)
+                precision_mean.append(precision)
+                recall_mean.append(recall)
+                f1_mean.append(f1)
 
                 loss = binary_cross_entropy(y, t)
                 loss_mean.append(loss)
-                
-                aucs.append(auc)
-                loss_mean.append(loss)
-                accs.append(acc)
-                q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
-                precisions.append(precision)
-                recalls.append(recall)
-                f1s.append(f1)
                 
                 if loss > best_loss:
                     patience_check += 1
@@ -217,6 +219,9 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             loss_mean = np.mean(loss_mean)
             auc_mean = np.mean(auc_mean)
             acc_mean = np.mean(acc_mean)
+            precision_mean = np.mean(precision_mean)
+            recall_mean = np.mean(recall_mean)
+            f1_mean = np.mean(f1_mean)
             
             if(use_wandb != False):
                 wandb.log(
@@ -226,6 +231,13 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                     "val_acc": acc_mean,
                     "val_loss": loss_mean
                 })
+                
+            aucs.append(auc_mean)
+            loss_mean.append(loss_mean)
+            accs.append(acc_mean)
+            precisions.append(precision_mean)
+            recalls.append(recall_mean)
+            f1s.append(f1_mean)
             print(f"[Valid] Epoch: {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
 
         print(f"========== Finished Epoch: {epoch} ============")

@@ -26,15 +26,15 @@ class DKT(Module):
         # BERT for feature extraction
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig(output_hidden_states=True)
-        self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
-        self.at_emb_layer = Linear(768, self.emb_size)
-        self.at2_emb_layer = Linear(512, self.emb_size)
+        # distilconfig = DistilBertConfig(output_hidden_states=True)
+        # self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
+        # self.at_emb_layer = Linear(768, self.emb_size)
+        # self.at2_emb_layer = Linear(512, self.emb_size)
         
-        self.v_emb_layer = Linear(self.emb_size * 2, self.hidden_size)
+        # self.v_emb_layer = Linear(self.emb_size * 2, self.hidden_size)
         
-        self.e_layer = Linear(self.hidden_size, self.emb_size)
-        self.a_layer = Linear(self.hidden_size, self.emb_size)
+        # self.e_layer = Linear(self.hidden_size, self.emb_size)
+        # self.a_layer = Linear(self.hidden_size, self.emb_size)
 
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
         self.lstm_layer = LSTM(
