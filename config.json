@@ -9,7 +9,7 @@
     },
     "dkt": {
         "emb_size": 256,
-        "hidden_size": 100,
+        "hidden_size": 256,
         "dropout": 0.5
     },
     "dkf": {
