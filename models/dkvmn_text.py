@@ -79,7 +79,7 @@ class SUBJ_DKVMN(Module):
         
 
     
-    def forward(self, q, r, at_s, at_t, at_m, q2diff, qid):
+    def forward(self, q, r, at_s, at_t, at_m): # q2diff, qid 삭제
         '''
             Args: 
                 q: the question(KC) sequence with the size of [batch_size, n]
@@ -128,14 +128,14 @@ class SUBJ_DKVMN(Module):
         
         Mv = torch.stack(Mv, dim=1)
 
-        diff = self.d_emb_layer(q2diff)
+        # diff = self.d_emb_layer(q2diff)
         # Read Process 
         f = torch.tanh(
             self.f_layer(
             torch.cat(
                 [
                     (w.unsqueeze(-1) * Mv[:, :-1]).sum(-2),
-                    k + diff
+                    k # + diff 삭제
                 ],
                 dim=-1
             )
