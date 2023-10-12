@@ -189,7 +189,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 precision = metrics.precision_score(t.numpy(), bin_y, average='binary')
                 recall = metrics.recall_score(t.numpy(), bin_y, average='binary')
                 f1 = metrics.f1_score(t.numpy(), bin_y, average='binary')
-                
+                q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
+
                 acc_mean.append(acc)
                 precision_mean.append(precision)
                 recall_mean.append(recall)
@@ -538,22 +539,22 @@ def main(model_name, dataset_name, use_wandb):
             )
             
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_aucs_{seed}.pkl"), "wb") as f:
-                pickle.dump(auc, f)
+                pickle.dump(aucs, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_loss_means_{seed}.pkl"), "wb") as f:
-                pickle.dump(loss_mean, f)
+                pickle.dump(loss_means, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_accs_{seed}.pkl"), "wb") as f:
-                pickle.dump(acc, f)
+                pickle.dump(accs, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_q_accs_{seed}.pkl"), "wb") as f:
-                pickle.dump(q_acc, f)
+                pickle.dump(q_accs, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_q_cnts_{seed}.pkl"), "wb") as f:
-                pickle.dump(q_cnt, f)
+                pickle.dump(cnt, f)
             # precisions, recalls, f1s
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_precisions_{seed}.pkl"), "wb") as f:
-                pickle.dump(precision, f)
+                pickle.dump(precisions, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_recalls_{seed}.pkl"), "wb") as f:
-                pickle.dump(recall, f)
+                pickle.dump(recalls, f)
             with open(os.path.join(ckpt_path, f"{fold}_{seq_len}_f1s_{seed}.pkl"), "wb") as f:
-                pickle.dump(f1, f)
+                pickle.dump(f1s, f)
             
             wandb.finish()
             
