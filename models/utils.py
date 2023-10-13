@@ -162,7 +162,7 @@ def collate_ednet(batch, pad_val=-1):
         # text = ' '.join(answer_text)
         text = list(map(str), answer_text)
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=False, truncation=True, return_token_type_ids=True
+            text, add_special_tokens=False, truncation=True, return_token_type_ids=False
         )
         bert_details.append(encoded_bert_sent)
     
