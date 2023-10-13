@@ -167,11 +167,11 @@ def collate_ednet(batch, pad_val=-1):
         bert_details.append(encoded_bert_sent)
     
     bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
-    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
+    # bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
     
     
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, [], [], [], []
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, [], bert_sentence_att_mask, [], [], [], []
 
 
 def collate_fn(batch, pad_val=-1):
