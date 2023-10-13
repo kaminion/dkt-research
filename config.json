@@ -1,0 +1,102 @@
+{
+    "train_config": {
+        "batch_size": 24,
+        "num_epochs": 100,
+        "train_ratio": 0.6,
+        "learning_rate": 0.0001,
+        "optimizer": "adam",
+        "seq_len": 200
+    },
+    "dkt": {
+        "emb_size": 256,
+        "hidden_size": 256,
+        "dropout": 0.5
+    },
+    "dkf": {
+        "emb_size": 50,
+        "hidden_size": 50
+    },
+    "dkt-": {
+        "emb_size": 50,
+        "hidden_size": 100,
+        "dropout": 0.2
+    },
+    "dkt+": {
+        "emb_size": 50,
+        "hidden_size": 100,
+        "dropout": 0.2
+    },
+    "dkvmn":{
+        "dim_s": 50,
+        "size_m": 20
+    },
+    "dkvmn+":{
+        "dim_s": 200,
+        "size_m": 20
+    },
+    "dkvmn-":{
+        "dim_s": 50,
+        "size_m": 5
+    },
+    "sakt":{
+        "n": 50,
+        "d": 50,
+        "num_attn_heads": 5,
+        "dropout": 0.2
+    },
+    "sakt+":{
+        "n": 100,
+        "d": 100,
+        "num_attn_heads": 5,
+        "dropout": 0.2
+    },
+    "sakt-":{
+        "n": 100,
+        "d": 100,
+        "num_attn_heads": 5,
+        "dropout": 0.2
+    },
+    "akt":{ 
+        "n_blocks":1,
+        "dropout":0.05
+    },
+    "saint":{
+        "n": 50,
+        "d": 512,
+        "num_attn_heads": 4,
+        "num_tr_layers": 4,
+        "dropout": 0.1
+    },
+    "saint-":{
+        "n": 100,
+        "d": 512,
+        "num_attn_heads": 4,
+        "num_tr_layers": 4,
+        "dropout": 0.1
+    },
+    "saint+":{
+        "n": 100,
+        "d": 512,
+        "num_attn_heads": 8,
+        "num_tr_layers": 8,
+        "dropout": 0.1
+    },
+    "auto": {
+        "seq_len": 100,
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "mekt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "dirt": {
+        "emb_size": 100,
+        "hidden_size": 100
+    },
+    "qakt":{
+        "emb_size": 100,
+        "hidden_size": 100
+    }
+
+}
