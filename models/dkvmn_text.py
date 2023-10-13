@@ -52,7 +52,7 @@ class SUBJ_DKVMN(Module):
         # BERT for feature extraction
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig(output_hidden_states=True)
+        distilconfig = DistilBertConfig(max_position_embeddings=self.dim_s, output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
         self.at_emb_layer = Sequential(
             Linear(768, self.dim_s),
