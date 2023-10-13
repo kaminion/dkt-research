@@ -46,19 +46,19 @@ class SUBJ_DKVMN(Module):
 
         # Right network
         # transformer network for feature extraction
-        encoder_layers = TransformerEncoderLayer(d_model=self.dim_s, nhead=2)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
+        # encoder_layers = TransformerEncoderLayer(d_model=self.dim_s, nhead=2)
+        # self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers=1)
 
         # BERT for feature extraction
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig(max_position_embeddings=self.dim_s, output_hidden_states=True)
+        distilconfig = DistilBertConfig(output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
-        self.at_emb_layer = Sequential(
-            Linear(768, self.dim_s),
-            ReLU(),
-            LayerNorm(self.dim_s)
-        )
+        # self.at_emb_layer = Sequential(
+        #     Linear(768, self.dim_s),
+        #     ReLU(),
+        #     LayerNorm(self.dim_s)
+        # )
         self.at_emb_layer = Linear(768, self.dim_s)
         self.at2_emb_layer = Linear(512, self.dim_s)
 
@@ -90,7 +90,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + r * self.num_q)
+        x = self.qr_emb_layer(q + r * self.num_q).permute(0, 2, 1)
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
@@ -98,6 +98,7 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state)
+        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -110,8 +111,6 @@ class SUBJ_DKVMN(Module):
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
-        
-        print(x.shape, em_at.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
         
         # Correlation Weight
