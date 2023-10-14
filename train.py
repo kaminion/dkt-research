@@ -107,7 +107,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 pred_t = pidshift
 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
+            y = model(q.long(), r.long(), bert_s, bert_t, bert_m) # sakt는 qshft_seqs.long() 추가
             y = (y * one_hot(inpt_q, num_q)).sum(-1)
 
             opt.zero_grad()
