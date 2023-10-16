@@ -221,8 +221,10 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                         best_pef = {"seed": wandb.config.seed, \
                                     "dropout": wandb.config.dropout, \
                                     "lr": wandb.config.learning_rate, \
-                                    "emb_size": wandb.config.emb_size, \
-                                    "hidden_size": wandb.config.hidden_size \
+                                    'dim_s': {'values': [20, 50]}, \
+                                    'size_m': {'values': [20, 50]}
+                                    # "emb_size": wandb.config.emb_size, \
+                                    # "hidden_size": wandb.config.hidden_size \
                                     }
                         pickle.dump(best_pef, f)
                     
