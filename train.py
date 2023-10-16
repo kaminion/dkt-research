@@ -217,6 +217,14 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                         )
                     )
                     max_auc = auc
+                    with open(os.path.join(ckpt_path, f"best_val_auc.pkl"), "wb") as f:
+                        best_pef = {"seed": wandb.config.seed, \
+                                    "dropout": wandb.config.dropout, \
+                                    "lr": wandb.config.learning_rate, \
+                                    "emb_size": wandb.config.emb_size, \
+                                    "hidden_size": wandb.config.hidden_size \
+                                    }
+                        pickle.dump(best_pef, f)
                     
             loss_mean = np.mean(loss_mean)
             auc_mean = np.mean(auc_mean)
@@ -499,10 +507,12 @@ def main(model_name, dataset_name, use_wandb):
             run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
             run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
             
-            random.seed(wandb.config.seed)
-            np.random.seed(wandb.config.seed)
-            torch.manual_seed(wandb.config.seed)
-            torch.cuda.manual_seed_all(wandb.config.seed)
+            seed = wandb.config.seed
+            random.seed(seed)
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+            
             
             assert run is not None
             assert type(run) is wandb.sdk.wandb_run.Run
@@ -576,11 +586,12 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'epochs': {'values': [100]},
+                'epochs': {'values': [300]},
                 'seed': {'values': [13, 42]},
-                'dropout': {'values': [0.1, 0.2, 0.5]},
+                'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
                 'learning_rate': {'values': [1e-3, 1e-4]},
-                'hidden_size': {'values': [256]}
+                'emb_size': {'values': [256, 512]},
+                'hidden_size': {'values': [256, 512]}
             }
         }
         
