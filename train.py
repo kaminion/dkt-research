@@ -526,7 +526,7 @@ def main(model_name, dataset_name, use_wandb):
             opt.param_groups[0]['lr'] = wandb.config.learning_rate
             
             # 모델 파라미터
-            model.hidden_size = wandb.config.hidden_size
+            # model.hidden_size = wandb.config.hidden_size
             model.dropout = wandb.config.dropout
             
             # Sample elements randomly from a given list of ids, no replacement.
