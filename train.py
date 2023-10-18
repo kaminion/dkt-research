@@ -42,7 +42,7 @@ from models.akt import AKT
 from models.dkt_sc import dkt_train as dkf_train
 from models.dkt_rear import dkt_train as dk_rear_train
 from models.dkt_front import dkt_train as dk_front_train
-from models.dkt import dkt_train
+from models.dkt import train_model as dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.dkvmn_back import train_model as minus_train
@@ -56,8 +56,9 @@ from models.saint_rear import train_model as saint_rear_train
 from models.akt import train_model as akt_train
 
 # 모델에 따른 test
-from models.saint import test_model as saint_test
+from models.dkt import test_model as dkt_test
 from models.dkvmn import test_model as dkvmn_test
+from models.saint import test_model as saint_test
 
 
 from models.utils import collate_fn, collate_ednet, cal_acc_class, reset_weight
@@ -401,6 +402,8 @@ def main(model_name, dataset_name, use_wandb):
     test_model = None
     if model_name == "dkt":
         model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
+        train_model = dkt_train
+        test_model = dkt_test
     elif model_name == "dkf":
         model = torch.nn.DataParallel(DKT_F(dataset.num_q, **model_config)).to(device)
     elif model_name == "dkt-":
