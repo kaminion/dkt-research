@@ -93,6 +93,16 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
     recalls = []
     f1s = []
     
+    wandb_dict = {}
+    if use_wandb == True: 
+        wandb_dict = {
+                    "seed": wandb.config.seed,
+                    "dropout": wandb.config.dropout, 
+                    "lr": wandb.config.learning_rate,
+                    "emb_size": wandb.config.hidden_size,
+                    "hidden_size": wandb.config.hidden_size
+                }
+    
         # "n": 50,
         # "d": 512,
         # "num_attn_heads": 4,
@@ -153,14 +163,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 
                 auc = metrics.roc_auc_score(y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy())
                 max_auc = save_auc(model, max_auc, auc, \
-                            {
-                                "seed": wandb.config.seed,
-                                "dropout": wandb.config.dropout, 
-                                "lr": wandb.config.learning_rate,
-                                "emb_size": wandb.config.hidden_size,
-                                "hidden_size": wandb.config.hidden_size
-                            }, 
-                    ckpt_path, use_wandb)
+                            wandb_dict, # 만약 wandb 체크 안했다면 빈 dict 들어감
+                            ckpt_path, use_wandb)
                 bin_y = common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
                 val_append(t, bin_y, precision_mean, recall_mean, f1_mean)
                 q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)
