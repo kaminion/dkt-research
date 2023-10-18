@@ -207,9 +207,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
             q, y, t, loss = common_test(model, q, r, m)
-            
-            q = torch.masked_select(q, m).detach().cpu()
-            
+                        
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
             )
