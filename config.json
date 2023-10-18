@@ -1,6 +1,6 @@
 {
     "train_config": {
-        "batch_size": 24,
+        "batch_size": 32,
         "num_epochs": 100,
         "train_ratio": 0.6,
         "learning_rate": 0.0001,
@@ -61,7 +61,7 @@
         "dropout":0.05
     },
     "saint":{
-        "n": 50,
+        "n": 100,
         "hidden_size": 512,
         "num_attn_heads": 4,
         "num_tr_layers": 4,
