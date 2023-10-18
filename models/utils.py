@@ -554,6 +554,25 @@ def sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m):
             
     return y, t, loss
 
+def akt_train(model, opt, q, r, pid, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    inpt_pid = pid.long()
+    
+    y, preloss = model(inpt_q, inpt_r, inpt_pid)
+
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(r, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t) + preloss.item() # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+    loss.backward()
+    opt.step()
+    
+    return y, t, loss
+
+
 def bert_train(model, opt, q, r, m, at_s, at_t, at_m):
     inpt_q = q.long()
     inpt_r = r.long()
