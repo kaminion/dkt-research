@@ -651,6 +651,22 @@ def sakt_test(model, q, r, qshft_seqs, rshft_seqs, m):
 
     return q, y, t, loss, Aw
 
+def akt_test(model, q, r, pid, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    inpt_pid = pid.long()
+    
+    y, preloss = model(inpt_q, inpt_r, inpt_pid)
+
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(r, m)
+    
+    loss = binary_cross_entropy(y, t) + preloss.item() # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+    
+    return y, t, loss
+
 def common_append(y, t, loss, loss_mean, auc_mean, acc_mean):
     
     loss_mean.append(
