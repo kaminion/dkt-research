@@ -155,7 +155,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                y, t, loss = common_test(model, q, r, m)
+                q, y, t, loss = common_test(model, q, r, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -206,7 +206,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            y, t, loss = common_test(model, q, r, m)
+            q, y, t, loss = common_test(model, q, r, m)
             
             q = torch.masked_select(q, m).detach().cpu()
             

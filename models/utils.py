@@ -505,12 +505,13 @@ def common_test(model, q, r, m):
     y = model(inpt_q, inpt_r)
     
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
     y = torch.masked_select(y, m).detach().cpu()
     t = torch.masked_select(r, m).detach().cpu()
     
     loss = binary_cross_entropy(y, t)
     
-    return y, t, loss
+    return q, y, t, loss
 
 def common_append(y, t, loss, loss_mean, auc_mean, acc_mean):
     
