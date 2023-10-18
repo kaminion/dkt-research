@@ -57,7 +57,7 @@ from models.akt import train_model as akt_train
 
 # 모델에 따른 test
 from models.saint import test_model as saint_test
-
+from models.dkvmn import test_model as dkvmn_test
 
 
 from models.utils import collate_fn, collate_ednet, cal_acc_class, reset_weight
@@ -409,6 +409,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(DKT_REAR(dataset.num_q, **model_config)).to(device)
     elif model_name == 'dkvmn':
         model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
+        train_model = dkvmn_train
+        test_model = dkvmn_test
     elif model_name == 'dkvmn+':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
     elif model_name == 'dkvmn-':

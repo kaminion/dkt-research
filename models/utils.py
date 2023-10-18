@@ -492,7 +492,7 @@ def common_train(model, opt, q, r, m):
     t = torch.masked_select(r, m)
     
     opt.zero_grad()
-    loss = binary_cross_entropy(y, t)
+    loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
     loss.backward()
     opt.step()
     
