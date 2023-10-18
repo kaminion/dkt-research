@@ -9,7 +9,7 @@ from torch.nn import Module, Parameter, Embedding, Linear, Dropout
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy
 from sklearn import metrics 
-from models.utils import cal_acc_class, common_train, common_test, common_append, val_append, log_auc, mean_eval, mean_eval_ext, save_auc, early_stopping
+from models.utils import cal_acc_class, dkvmn_train, dkvmn_test, common_append, val_append, log_auc, mean_eval, mean_eval_ext, save_auc, early_stopping
 
 import wandb
 
@@ -138,7 +138,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                     "seed": wandb.config.seed,
                     "dropout": wandb.config.dropout, 
                     "lr": wandb.config.learning_rate,
-                    "emb_size": wandb.config.hidden_size,
+                    "emb_size": wandb.config.emb_size,
                     "hidden_size": wandb.config.hidden_size
                 }
     
@@ -160,7 +160,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             
             # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, t, loss = common_train(model, opt, q, r, m)
+            y, t, loss = dkvmn_train(model, opt, q, r, m)
             
             common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
             
@@ -193,7 +193,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                q, y, t, loss = common_test(model, q, r, m)
+                q, y, t, loss = dkvmn_test(model, q, r, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -244,7 +244,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            q, y, t, loss = common_test(model, q, r, m)
+            q, y, t, loss = dkvmn_test(model, q, r, m)
             
             q = torch.masked_select(q, m).detach().cpu()
             
