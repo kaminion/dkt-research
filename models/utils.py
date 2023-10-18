@@ -665,7 +665,7 @@ def akt_test(model, q, r, pid, m):
     
     loss = binary_cross_entropy(y, t) + preloss.item() # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
     
-    return y, t, loss
+    return q, y, t, loss
 
 def common_append(y, t, loss, loss_mean, auc_mean, acc_mean):
     

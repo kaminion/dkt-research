@@ -60,7 +60,7 @@ from models.dkt import test_model as dkt_test
 from models.dkvmn import test_model as dkvmn_test
 from models.sakt import test_model as sakt_test
 from models.saint import test_model as saint_test
-
+from models.akt import test_model as akt_test
 
 from models.utils import collate_fn, collate_ednet, cal_acc_class, reset_weight
 
@@ -437,6 +437,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(SAINT_REAR(dataset.num_q, **model_config)).to(device)
     elif model_name == 'akt':
         model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
+        train_model = akt_train
+        test_model = akt_test
     elif model_name == "auto":
         model = torch.nn.DataParallel(AUTO(num_q=dataset.num_q, **model_config)).to(device)
     elif model_name == "mekt":
