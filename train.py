@@ -46,7 +46,7 @@ from models.dkt import train_model as dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
 from models.dkvmn_back import train_model as minus_train
-from models.sakt import sakt_train
+from models.sakt import train_model as sakt_train
 from models.sakt_front import sakt_train as sakt_front_train
 from models.sakt_rear import sakt_train as sakt_rear_train
 from models.dkvmn import train_model as dkvmn_train
@@ -58,6 +58,7 @@ from models.akt import train_model as akt_train
 # 모델에 따른 test
 from models.dkt import test_model as dkt_test
 from models.dkvmn import test_model as dkvmn_test
+from models.sakt import test_model as sakt_test
 from models.saint import test_model as saint_test
 
 
@@ -420,6 +421,8 @@ def main(model_name, dataset_name, use_wandb):
         model = torch.nn.DataParallel(BACK_DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'sakt':
         model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
+        train_model = sakt_train 
+        test_model = sakt_test
     elif model_name == 'sakt-':
         model = torch.nn.DataParallel(SAKT_FRONT(dataset.num_q, **model_config)).to(device)
     elif model_name == 'sakt+':

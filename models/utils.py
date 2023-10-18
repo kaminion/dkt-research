@@ -501,9 +501,10 @@ def common_train(model, opt, q, r, m):
 def dkt_train(model, opt, q, r, qshft_seqs, num_q, m):
     inpt_q = q.long()
     inpt_r = r.long()
+    next_q = qshft_seqs.long()
     
     y = model(inpt_q, inpt_r)
-    y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+    y = (y * one_hot(next_q, num_q)).sum(-1)
     
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
     y = torch.masked_select(y, m)
@@ -531,6 +532,26 @@ def dkvmn_train(model, opt, q, r, m):
     loss.backward()
     opt.step()
     
+    return y, t, loss
+
+def sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    next_q = qshft_seqs.long()
+    next_r = rshft_seqs.long()
+    
+    # 현재까지의 입력을 받은 뒤 다음 문제 예측
+    y, _ = model(inpt_q, inpt_r, next_q)
+
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(next_r, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t)
+    loss.backward()
+    opt.step()
+            
     return y, t, loss
 
 def bert_train(model, opt, q, r, m, at_s, at_t, at_m):
@@ -592,6 +613,24 @@ def dkvmn_test(model, q, r, m):
     
     loss = binary_cross_entropy(y, t)
     return q, y, t, loss, Mv
+
+def sakt_test(model, q, r, qshft_seqs, rshft_seqs, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    next_q = qshft_seqs.long()
+    next_r = rshft_seqs.long()
+    
+    # 현재까지의 입력을 받은 뒤 다음 문제 예측
+    y, Aw = model(inpt_q, inpt_r, next_q)
+
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(next_r, m)
+    
+    loss = binary_cross_entropy(y, t)
+
+    return q, y, t, loss, Aw
 
 def common_append(y, t, loss, loss_mean, auc_mean, acc_mean):
     
