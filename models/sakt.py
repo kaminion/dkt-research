@@ -24,11 +24,11 @@ class SAKT(Module):
                 multi-head attention module in this model
             dropout: the dropout rate of this model
     '''
-    def __init__(self, num_q, n, d, num_attn_heads, dropout):
+    def __init__(self, num_q, n, hidden_size, num_attn_heads, dropout):
         super(SAKT, self).__init__()
         self.num_q = num_q
         self.n = n 
-        self.d = d
+        self.d = hidden_size
         self.num_attn_heads = num_attn_heads
         self.dropout = dropout
 

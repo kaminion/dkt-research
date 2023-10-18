@@ -40,7 +40,7 @@
     },
     "sakt":{
         "n": 200,
-        "d": 50,
+        "hidden_size": 50,
         "num_attn_heads": 5,
         "dropout": 0.2
     },
