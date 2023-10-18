@@ -33,6 +33,7 @@ class SAINT(Module):
         self.E = Embedding(self.num_q, self.d)
         self.R = Embedding(2, self.d)
         # n -> num_q
+        # seq_len만큼 주면 됨
         self.P = Parameter(torch.Tensor(self.n, self.d)) # to predict the probability about Interaction (exercise, respone), window size인듯
         self.S = Parameter(torch.Tensor(1, self.d))
 
