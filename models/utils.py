@@ -637,7 +637,7 @@ def sakt_test(model, q, r, qshft_seqs, rshft_seqs, m):
     inpt_q = q.long()
     inpt_r = r.long()
     next_q = qshft_seqs.long()
-    next_r = rshft_seqs.long()
+    next_r = rshft_seqs
     
     # 현재까지의 입력을 받은 뒤 다음 문제 예측
     y, Aw = model(inpt_q, inpt_r, next_q)
