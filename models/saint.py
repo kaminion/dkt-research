@@ -147,7 +147,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
                 y, t, loss = common_test(model, q, r, m)
                                 
-                patience_check = early_stopping(best_loss, loss, patience_check, patience_limit)
+                patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
                     break
                 
