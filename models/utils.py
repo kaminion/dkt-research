@@ -545,7 +545,7 @@ def sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m):
 
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
     y = torch.masked_select(y, m)
-    t = torch.masked_select(next_r, m)
+    t = torch.masked_select(rshft_seqs, m)
     
     opt.zero_grad()
     loss = binary_cross_entropy(y, t)
@@ -644,8 +644,8 @@ def sakt_test(model, q, r, qshft_seqs, rshft_seqs, m):
 
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
     q = torch.masked_select(q, m).detach().cpu()
-    y = torch.masked_select(y, m)
-    t = torch.masked_select(next_r, m)
+    y = torch.masked_select(y, m).detach().cpu()
+    t = torch.masked_select(next_r, m).detach().cpu()
     
     loss = binary_cross_entropy(y, t)
 
