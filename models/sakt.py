@@ -65,7 +65,7 @@ class SAKT(Module):
 
         self.pred = Linear(self.d, 1)
 
-    def forward(self, q, r, qry, at_s, at_t, at_m):
+    def forward(self, q, r, qry):
         '''
             Args: 
                 q: the question(KC) sequence with the size of [batch_size, n]
