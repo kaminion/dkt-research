@@ -160,7 +160,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                                 "emb_size": wandb.config.hidden_size,
                                 "hidden_size": wandb.config.hidden_size
                             }, 
-                    ckpt_path)
+                    ckpt_path, use_wandb)
                 bin_y = common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
                 val_append(t, bin_y, precision_mean, recall_mean, f1_mean)
                 q_accs, cnt = cal_acc_class(q.long(), t.long(), bin_y)

@@ -447,7 +447,7 @@ def early_stopping(best_loss, loss, patience_check):
         # patience_check 초기화 
     return patience_check
     
-def save_auc(model, max_auc, auc, hyp_dict, ckpt_path):
+def save_auc(model, max_auc, auc, hyp_dict, ckpt_path, use_wandb):
     if auc > max_auc : 
         torch.save(
             model.state_dict(),
@@ -456,18 +456,19 @@ def save_auc(model, max_auc, auc, hyp_dict, ckpt_path):
             )
         )
         max_auc = auc
-        with open(os.path.join(ckpt_path, f"best_val_auc.pkl"), "wb") as f:
-            best_pef = hyp_dict
-            # e.g
-            # {"seed": wandb.config.seed, \
-            #         "dropout": wandb.config.dropout, \
-            #         "lr": wandb.config.learning_rate, \
-            #         'dim_s': {'values': [20, 50]}, \
-            #         'size_m': {'values': [20, 50]}
-            #         # "emb_size": wandb.config.emb_size, \
-            #         # "hidden_size": wandb.config.hidden_size \
-            #         }
-            pickle.dump(best_pef, f)
+        if(use_wandb == True):
+            with open(os.path.join(ckpt_path, f"best_val_auc.pkl"), "wb") as f:
+                best_pef = hyp_dict
+                # e.g
+                # {"seed": wandb.config.seed, \
+                #         "dropout": wandb.config.dropout, \
+                #         "lr": wandb.config.learning_rate, \
+                #         'dim_s': {'values': [20, 50]}, \
+                #         'size_m': {'values': [20, 50]}
+                #         # "emb_size": wandb.config.emb_size, \
+                #         # "hidden_size": wandb.config.hidden_size \
+                #         }
+                pickle.dump(best_pef, f)
     return max_auc 
             
 def log_auc(use_wandb, log_dict):
