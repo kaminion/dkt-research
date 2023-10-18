@@ -488,7 +488,7 @@ def common_train(model, opt, q, r, m):
     
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
     y = torch.masked_select(y, m)
-    t = torch.masked_select(inpt_r, m)
+    t = torch.masked_select(r, m)
     
     opt.zero_grad()
     loss = binary_cross_entropy(y, t)
@@ -534,7 +534,6 @@ def val_append(t, bin_y, precision_mean, recall_mean, f1_mean):
     recall_mean.append(recall)
     f1_mean.append(f1)
 
-    
 def mean_eval(loss_mean, auc_mean, acc_mean):
     
     lm = np.mean(loss_mean)
