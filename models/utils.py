@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import pickle
 import torch 
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
@@ -10,10 +12,12 @@ else:
     from torch import FloatTensor, CharTensor, LongTensor
 
 from transformers import BertTokenizer, DistilBertTokenizer
-from sklearn import metrics
 
+from sklearn import metrics
 from sklearn.metrics import classification_report
 from torch.nn.functional import one_hot, binary_cross_entropy
+
+import wandb
 
 # bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 bert_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
@@ -422,8 +426,127 @@ def cal_acc_class(q_seqs, y_true, y_pred):
     
     return accs, question_cnts
 
+
+### related to train parts
 def reset_weight(m):
     for layer in m.children():
         if hasattr(layer, 'reset_parameters'):
             print(f'Reset trainable parameters of layer = {layer}')
             layer.reset_parameters()
+            
+def early_stopping(best_loss, loss, patience_check):
+    # 로스가 개선되지 않았을 경우
+    if loss > best_loss:
+        patience_check += 1
+        
+        # if patience_check >= patience_limit:
+        #     return patience_check # break 걸어줘서 stopping
+    else:
+        best_loss = loss
+        patience_check = 0
+        # patience_check 초기화 
+    return patience_check
+    
+def save_auc(model, max_auc, auc, hyp_dict, ckpt_path):
+    if auc > max_auc : 
+        torch.save(
+            model.state_dict(),
+            os.path.join(
+                ckpt_path, "model.ckpt"
+            )
+        )
+        max_auc = auc
+        with open(os.path.join(ckpt_path, f"best_val_auc.pkl"), "wb") as f:
+            best_pef = hyp_dict
+            # e.g
+            # {"seed": wandb.config.seed, \
+            #         "dropout": wandb.config.dropout, \
+            #         "lr": wandb.config.learning_rate, \
+            #         'dim_s': {'values': [20, 50]}, \
+            #         'size_m': {'values': [20, 50]}
+            #         # "emb_size": wandb.config.emb_size, \
+            #         # "hidden_size": wandb.config.hidden_size \
+            #         }
+            pickle.dump(best_pef, f)
+    return max_auc 
+            
+def log_auc(use_wandb, log_dict):
+    if(use_wandb != False):
+        wandb.log(log_dict)        
+        # e.g{
+        #     "epoch": epoch,
+        #     "train_auc": auc_mean, 
+        #     "train_acc": acc_mean,
+        #     "train_loss": loss_mean
+        # }
+
+def common_train(model, opt, q, r, m):
+    inpt_q = q.long() 
+    inpt_r = r.long()
+    
+    y = model(inpt_q, inpt_r)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(inpt_r, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t)
+    loss.backward()
+    opt.step()
+    
+    return y, t, loss
+
+def common_test(model, q, r, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    
+    y = model(inpt_q, inpt_r)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m).detach().cpu()
+    t = torch.masked_select(inpt_r, m).detach().cpu()
+    
+    loss = binary_cross_entropy(y, t)
+    
+    return y, t, loss
+
+def common_append(y, t, loss, loss_mean, auc_mean, acc_mean):
+    
+    loss_mean.append(
+        loss.detach().cpu().numpy()
+    )
+    auc_mean.append(metrics.roc_auc_score(
+        y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy()
+    ))
+    bin_y = [1 if p >= 0.5 else 0 for p in y.detach().cpu().numpy()]
+    acc_mean.append(metrics.accuracy_score(t.detach().cpu().numpy(), bin_y))
+    return bin_y
+    
+def val_append(t, bin_y, precision_mean, recall_mean, f1_mean):
+    target = t.numpy()
+    
+    precision = metrics.precision_score(target, bin_y, average='binary')
+    recall = metrics.recall_score(target, bin_y, average='binary')
+    f1 = metrics.f1_score(target, bin_y, average='binary')
+    
+    precision_mean.append(precision)
+    recall_mean.append(recall)
+    f1_mean.append(f1)
+
+    
+def mean_eval(loss_mean, auc_mean, acc_mean):
+    
+    lm = np.mean(loss_mean)
+    aum = np.mean(auc_mean)
+    acm = np.mean(acc_mean)
+    
+    return lm, aum, acm
+
+def mean_eval_ext(precision_mean, recall_mean, f1_mean):
+    
+    pm = np.mean(precision_mean)
+    rm = np.mean(recall_mean)
+    f1m = np.mean(f1_mean)
+    
+    return pm, rm, f1m
