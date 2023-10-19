@@ -122,7 +122,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             
             # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, t, loss = dkt_train(model, opt, q, r, qshft_seqs, num_q, m)
+            y, t, loss = dkt_train(model, opt, q, r, qshft_seqs, rshft_seqs, num_q, m)
             
             common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
             
@@ -155,7 +155,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                q, y, t, loss = dkt_test(model, q, r, qshft_seqs, num_q, m)
+                q, y, t, loss = dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -209,7 +209,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            q, y, t, loss = dkt_test(model, q, r, qshft_seqs, num_q, m)                        
+            q, y, t, loss = dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m)                        
             
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
