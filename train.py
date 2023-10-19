@@ -244,12 +244,8 @@ def main(model_name, dataset_name, use_wandb):
     pred_now  = ["dkvmn", "dkvmn+", "dkvmn-", "akt", "saint", "saint+", "saint-"]
     
     mode = 0
-    if model_name in pred_next:
+    if dataset_name == "CSEDM":
         mode = 1
-    elif model_name in pred_now and dataset_name == "CSEDM":
-        mode = 2
-    elif model_name in pred_next and dataset_name == "CSEDM":
-        mode = 3
     
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
     def train_main():
