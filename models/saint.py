@@ -160,8 +160,10 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
                     break
-                
-                auc = metrics.roc_auc_score(y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy())
+                try:
+                    auc = metrics.roc_auc_score(y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy())
+                except:
+                    continue
                 max_auc = save_auc(model, max_auc, auc, \
                             wandb_dict, # 만약 wandb 체크 안했다면 빈 dict 들어감
                             ckpt_path, use_wandb)
