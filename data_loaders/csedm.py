@@ -1,5 +1,3 @@
-import torch
-from torchvision import transforms
 from models.utils import match_seq_len
 import numpy as np
 import pandas as pd
@@ -43,7 +41,7 @@ class CSEDM(Dataset):
         self.dataset_dir = dataset_dir
         self.save_dir = SAVE_DIR
         self.dataset_path = os.path.join(
-            self.dataset_dir, "ALL_CSEDM.csv"
+            self.dataset_dir, "ALL_CSEDM1.csv"
         )
 
         # 미리 피클에 담겨진 파일들 로딩
@@ -88,7 +86,7 @@ class CSEDM(Dataset):
         return self.len
 
     def preprocess(self):
-        df = pd.read_csv(self.dataset_path, encoding='utf-8-sig')
+        df = pd.read_csv(self.dataset_path, encoding='utf-8-sig') # 원래는 utf-8-sig 였음
         df['Label'] = df['Label'].replace({True: 1, False: 0})
         
         # df.loc[df['Score'] == 1, 'Score'] = 1
