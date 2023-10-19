@@ -138,8 +138,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                     "seed": wandb.config.seed,
                     "dropout": wandb.config.dropout, 
                     "lr": wandb.config.learning_rate,
-                    "emb_size": wandb.config.emb_size,
-                    "hidden_size": wandb.config.hidden_size
+                    "size_m": wandb.config.size_m,
+                    "dim_s": wandb.config.dim_s
                 }
     
         # "n": 50,
