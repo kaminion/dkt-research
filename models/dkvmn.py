@@ -9,7 +9,7 @@ from torch.nn import Module, Parameter, Embedding, Linear, Dropout
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy
 from sklearn import metrics 
-from models.utils import cal_acc_class, dkvmn_train, dkvmn_test, common_append, val_append, log_auc, mean_eval, mean_eval_ext, save_auc, early_stopping
+from models.utils import cal_acc_class, dkvmn_train, dkvmn_test, common_append, val_append, log_auc, mean_eval, mean_eval_ext, save_auc_bert, early_stopping
 
 import wandb
 
@@ -204,7 +204,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 except:
                     continue
                 
-                max_auc = save_auc(model, max_auc, auc, \
+                max_auc = save_auc_bert(model, max_auc, auc, \
                             wandb_dict, # 만약 wandb 체크 안했다면 빈 dict 들어감
                             ckpt_path, use_wandb)
                 bin_y = common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
