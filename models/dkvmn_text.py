@@ -9,7 +9,7 @@ from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
 from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
-from models.utils import cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc, early_stopping, common_append, val_append, dkvmn_subj_train, dkvmn_subj_test
+from models.utils import cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc, early_stopping, common_append, val_append, dkvmn_bert_train, dkvmn_bert_test
 
 import wandb
 
@@ -197,7 +197,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             
             # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, t, loss = dkvmn_subj_train(model, opt, q, r, m)
+            y, t, loss = dkvmn_bert_train(model, opt, q, r, bert_s, bert_t, bert_m, m)
             
             common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
             
@@ -230,7 +230,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                q, y, t, loss, Mv = dkvmn_subj_test(model, q, r, m)
+                q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -285,7 +285,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            q, y, t, loss, Mv = dkvmn_subj_test(model, q, r, m)
+            q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
                         
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
