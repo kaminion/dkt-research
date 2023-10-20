@@ -41,7 +41,7 @@ class CSEDM(Dataset):
         self.dataset_dir = dataset_dir
         self.save_dir = SAVE_DIR
         self.dataset_path = os.path.join(
-            self.dataset_dir, "ALL_CSEDM1.csv"
+            self.dataset_dir, "ALL_CSEDM.csv"
         )
 
         # 미리 피클에 담겨진 파일들 로딩
