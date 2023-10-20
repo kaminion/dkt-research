@@ -58,6 +58,7 @@ from models.akt import train_model as akt_train
 # 모델에 따른 test
 from models.dkt import test_model as dkt_test
 from models.dkvmn import test_model as dkvmn_test
+from models.dkvmn_text import test_model as plus_test
 from models.sakt import test_model as sakt_test
 from models.saint import test_model as saint_test
 from models.akt import test_model as akt_test
@@ -156,6 +157,8 @@ def main(model_name, dataset_name, use_wandb):
         test_model = dkvmn_test
     elif model_name == 'dkvmn+':
         model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
+        train_model = plus_train
+        test_model = plus_test
     elif model_name == 'dkvmn-':
         model = torch.nn.DataParallel(BACK_DKVMN(dataset.num_q, **model_config)).to(device)
     elif model_name == 'sakt':
