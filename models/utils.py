@@ -277,7 +277,7 @@ def collate_fn(batch, pad_val=-1):
 
     for answer_text in at_seqs:
         # text = ' '.join(map(str, answer_text))
-        text = list(map(str), answer_text)
+        text = list(map(str, answer_text))
 
         # print(f"============= text: {text} ================")
         encoded_bert_sent = bert_tokenizer.encode_plus(
