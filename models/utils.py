@@ -281,7 +281,7 @@ def collate_fn(batch, pad_val=-1):
 
         # print(f"============= text: {text} ================")
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, padding='max_length', truncation=True, return_token_type_ids=True
+            text, add_special_tokens=False, padding='max_length', truncation=True, return_token_type_ids=True
         )
         bert_details.append(encoded_bert_sent)
     
