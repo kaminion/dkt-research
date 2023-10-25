@@ -242,10 +242,6 @@ def main(model_name, dataset_name, use_wandb):
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
     opt.lr_scheduler = lr_scheduler
     
-    # 현재꺼 예측, 다음꺼 예측, CSEDM 현재꺼 예측, 다음꺼 예측 이렇게 4개로 디자인
-    pred_next = ["dkt", "dkt+", "dkt-", "sakt", "sakt+", "sakt-"]
-    pred_now  = ["dkvmn", "dkvmn+", "dkvmn-", "akt", "saint", "saint+", "saint-"]
-    
     mode = 0
     if dataset_name == "CSEDM":
         mode = 1
