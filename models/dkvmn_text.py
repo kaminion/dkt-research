@@ -235,7 +235,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
                 
-                y, t, loss = None, None, None, None
+                y, t, loss = None, None, None
                 
                 if mode == 1: # CSEDM
                     q, y, t, loss, Mv = dkvmn_bert_test_csedm(model, q, r, bert_s, bert_t, bert_m, q2diff_seqs, m)
@@ -296,7 +296,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            y, t, loss = None, None, None, None
+            y, t, loss = None, None, None
                 
             if mode == 1: # CSEDM
                 q, y, t, loss, Mv = dkvmn_bert_test_csedm(model, q, r, bert_s, bert_t, bert_m, q2diff_seqs, m)
