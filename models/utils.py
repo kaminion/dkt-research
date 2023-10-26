@@ -115,26 +115,53 @@ def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, hint_seqs, seq_len,
 
     return proc_q_seqs, proc_r_seqs, proc_at_seqs, proc_q2diff, proc_pid_seqs, proc_hint_seqs
 
-def collate_ednet(batch, pad_val=-1):
+def collate_csedm(batch, pad_val=-1):
     '''
-        아래서는 at : answer_text 였듯이
-        여기서는 t: 가 optional answer임.
+    This function for torch.utils.data.DataLoader
+
+    Returns:
+        q_seqs: the question(KC) sequences with the size of \
+            [batch_size, maximum_sequence_length_in_the_batch]
+        r_seqs: the response sequences with the size of \
+            [batch_size, maximum_sequence_length_in_the_batch]
+        qshft_seqs: the question(KC) sequences which were shifted \
+            one step to the right with the size of \
+            [batch_size, maximum_sequence_length_in_the_batch]
+        rshft_seqs: the response sequences which were shifted \
+            one step to the right with the size of \
+            [batch_size, maximum_sequence_length_in_the_batch]
+        mask_seqs: the mask sequences indicating where \
+            the padded entry is with the size of \
+            [batch_size, maximum_sequence_length_in_the_batch]
     '''
+
     q_seqs = []
     r_seqs = []
     qshft_seqs = []
     rshft_seqs = []
-    t_seqs = []
-    tshft_seqs = []
-    
-    for q_seq, r_seq, t_seq in batch:
-        q_seqs.append(FloatTensor(q_seq[:-1]))
+    at_seqs = []
+    atshft_seqs = []
+    pid_seqs = []
+    pidshft_seqs = []
+    label_seqs = []
+    labshft_seqs = []
+
+    # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
+    # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
+    for q_seq, r_seq, at_seq, pid_seq, label_seq, hint_seq in batch:
+        q_seqs.append(FloatTensor(q_seq[:-1])) 
         r_seqs.append(FloatTensor(r_seq[:-1]))
-        t_seqs.append(t_seq[:-1])
+        at_seqs.append(at_seq[:-1])
+        atshft_seqs.append(at_seq[1:])
         qshft_seqs.append(FloatTensor(q_seq[1:]))
         rshft_seqs.append(FloatTensor(r_seq[1:]))
-        tshft_seqs.append(FloatTensor(t_seq[1:]))
-    
+        pid_seqs.append(FloatTensor(pid_seq[:-1]))
+        pidshft_seqs.append(FloatTensor(pid_seq[1:]))
+        label_seqs.append(FloatTensor(label_seq[:-1]))
+        labshft_seqs.append(FloatTensor(label_seq[1:]))
+
+    # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
+    # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
     q_seqs = pad_sequence(
         q_seqs, batch_first=True, padding_value=pad_val
     )
@@ -147,35 +174,56 @@ def collate_ednet(batch, pad_val=-1):
     rshft_seqs = pad_sequence(
         rshft_seqs, batch_first=True, padding_value=pad_val
     )
-    t_seqs = pad_sequence(
-        t_seqs, batch_first=True, padding_value=pad_val
+    pid_seqs = pad_sequence(
+        pid_seqs, batch_first=True, padding_value=pad_val
     )
-    tshft_seqs = pad_sequence(
-        tshft_seqs, batch_first=True, padding_value=pad_val
+    pidshft_seqs = pad_sequence(
+        pidshft_seqs, batch_first=True, padding_value=pad_val
     )
-    
+    label_seqs = pad_sequence(
+        label_seqs, batch_first=True, padding_value=pad_val
+    )
+    labshft_seqs = pad_sequence(
+        labshft_seqs, batch_first=True, padding_value=pad_val
+    )
+
+    # 마스킹 시퀀스 생성 
+    # 일반 question 시퀀스: 패딩 밸류와 다른 값들은 모두 1로 처리, 패딩 처리된 값들은 0으로 처리.
+    # 일반 question padding 시퀀스: 한 칸 옆으로 시프팅 된 시퀀스 값들이 패딩 값과 다를 경우 1로 처리, 패딩 처리 된 값들은 0으로 처리.
+    # 마스킹 시퀀스: 패딩 처리 된 시퀀스 밸류들은 모두 0, 두 값 모두 패딩처리 되지 않았을 경우 1로 처리. (원본 시퀀스와 shift 시퀀스 모두의 값)
+    # 예를 들어, 현재 값과 다음 값이 패딩 값이 아닐 경우 1, 현재 값과 다음 값 둘 중 하나라도 패딩일 경우 0으로 처리함.
     mask_seqs = (q_seqs != pad_val) * (qshft_seqs != pad_val)
 
-    q_seqs, r_seqs, qshft_seqs, rshft_seqs, t_seqs, tshft_seqs = \
+    # 원본 값의 다음 값이(shift value) 패딩이기만 해도 마스킹 시퀀스에 의해 값이 0로 변함. 아닐경우 원본 시퀀스 데이터를 가짐.
+    q_seqs, r_seqs, qshft_seqs, rshft_seqs, label_seqs, pid_seqs, pidshft_seqs, labshft_seqs = \
         q_seqs * mask_seqs, r_seqs * mask_seqs, qshft_seqs * mask_seqs, \
-        rshft_seqs * mask_seqs, t_seqs * mask_seqs, tshft_seqs * mask_seqs
-        
-    bert_details = []
+        rshft_seqs * mask_seqs, label_seqs * mask_seqs, pid_seqs * mask_seqs, \
+        pidshft_seqs * mask_seqs, labshft_seqs * mask_seqs
     
-    for answer_text in t_seqs:
-        # text = ' '.join(answer_text)
-        text = list(map(str), answer_text)
+
+    # Word2vec
+
+    # BERT preprocessing
+    bert_details = []
+
+    for answer_text in at_seqs:
+        # text = ' '.join(map(str, answer_text))
+        text = list(map(str, answer_text))
+
+        # print(f"============= text: {text} ================")
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, truncation=True, return_token_type_ids=False
+            text, add_special_tokens=True, padding='max_length', truncation=True, return_token_type_ids=True
         )
         bert_details.append(encoded_bert_sent)
     
+
     bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
-    # bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
+    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
-    
-    
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, [], bert_sentence_att_mask, [], [], [], []
+    # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
+
+    # CSEDM는 q2diff가 label_seq, hint_seq가 labshft_seq다.
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, label_seqs, pid_seqs, pidshft_seqs, labshft_seqs
 
 
 def collate_fn(batch, pad_val=-1):
@@ -581,6 +629,23 @@ def dkvmn_bert_train(model, opt, q, r, at_s, at_t, at_m, m):
     
     return y, t, loss
 
+def dkvmn_bert_train_csedm(model, opt, q, r, at_s, at_t, at_m, label, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    
+    y, Mv = model(inpt_q, inpt_r, at_s, at_t, at_m)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(label, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t)
+    loss.backward()
+    opt.step()
+    
+    return y, t, loss 
+
 def sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m):
     inpt_q = q.long()
     inpt_r = r.long()
@@ -689,6 +754,21 @@ def dkvmn_bert_test(model, q, r, at_s, at_t, at_m, m):
     q = torch.masked_select(q, m).detach().cpu()
     y = torch.masked_select(y, m).detach().cpu()
     t = torch.masked_select(r, m).detach().cpu()
+    
+    loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+    
+    return q, y, t, loss, Mv
+
+def dkvmn_bert_test_csedm(model, q, r, at_s, at_t, at_m, label, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    
+    y, Mv = model(inpt_q, inpt_r, at_s, at_t, at_m)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
+    y = torch.masked_select(y, m).detach().cpu()
+    t = torch.masked_select(label, m).detach().cpu()
     
     loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
     

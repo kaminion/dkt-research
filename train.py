@@ -63,7 +63,7 @@ from models.sakt import test_model as sakt_test
 from models.saint import test_model as saint_test
 from models.akt import test_model as akt_test
 
-from models.utils import collate_fn, collate_ednet, cal_acc_class, reset_weight
+from models.utils import collate_fn, collate_csedm, cal_acc_class, reset_weight
 
 # Cross Validation
 from sklearn.model_selection import KFold
@@ -113,8 +113,9 @@ def main(model_name, dataset_name, use_wandb):
     learning_rate = train_config["learning_rate"]
     optimizer = train_config["optimizer"] # can be sgd, adam
     seq_len = train_config["seq_len"] # 샘플링 할 갯수
-
+    
     # 데이터셋 추가 가능
+    mode = 0
     collate_pt = collate_fn
     if dataset_name == "ASSIST2009":
         dataset = ASSIST2009(seq_len)
@@ -122,9 +123,10 @@ def main(model_name, dataset_name, use_wandb):
         dataset = ASSIST2012(seq_len)
     elif dataset_name == "EDNET01":
         dataset = EdNet01(seq_len)
-        collate_pt = collate_ednet
     elif dataset_name == "CSEDM":
+        mode = 1
         dataset = CSEDM(seq_len)
+        collate_pt = collate_csedm
 
     if torch.cuda.is_available():
         device = "cuda"
@@ -241,10 +243,6 @@ def main(model_name, dataset_name, use_wandb):
         opt = Adam(model.parameters(), learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
     opt.lr_scheduler = lr_scheduler
-    
-    mode = 0
-    if dataset_name == "CSEDM":
-        mode = 1
     
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
     def train_main():

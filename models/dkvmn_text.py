@@ -9,7 +9,7 @@ from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
 from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
-from models.utils import cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc_bert, early_stopping, common_append, val_append, dkvmn_bert_train, dkvmn_bert_test
+from models.utils import cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc_bert, early_stopping, common_append, val_append, dkvmn_bert_train, dkvmn_bert_train_csedm, dkvmn_bert_test, dkvmn_bert_test_csedm
 
 import wandb
 
@@ -197,8 +197,13 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             
             # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-            y, t, loss = dkvmn_bert_train(model, opt, q, r, bert_s, bert_t, bert_m, m)
+            y, t, loss = None, None, None
             
+            if mode == 1: # CSEDM
+                y, t, loss = dkvmn_bert_train_csedm(model, opt, q, r, bert_s, bert_t, bert_m, q2diff_seqs, m)
+            else:
+                y, t, loss = dkvmn_bert_train(model, opt, q, r, bert_s, bert_t, bert_m, m)
+
             common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
             
         loss_mean, auc_mean, acc_mean =  mean_eval(loss_mean, auc_mean, acc_mean)
@@ -229,8 +234,13 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
 
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-
-                q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
+                
+                q, y, t, loss = None, None, None, None
+                
+                if mode == 1: # CSEDM
+                    q, y, t, loss, Mv = dkvmn_bert_test_csedm(model, q, r, bert_s, bert_t, bert_m, q2diff_seqs, m)
+                else:
+                    q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -264,7 +274,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             precisions.append(precision_mean)
             recalls.append(recall_mean)
             f1s.append(f1_mean)
-            print(f"[Valid] Epoch: {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
+            if epoch % 10 == 0:
+                print(f"[Valid] Epoch: {epoch} Result: AUC: {auc_mean}, ACC: {acc_mean}, loss: {loss_mean}")
             
         print(f"========== Finished Epoch: {epoch} ============")
     return aucs, loss_means, accs, q_accs, cnt, precisions, recalls, f1s
@@ -285,8 +296,12 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-            q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
-                        
+            q, y, t, loss = None, None, None, None
+                
+            if mode == 1: # CSEDM
+                q, y, t, loss, Mv = dkvmn_bert_test_csedm(model, q, r, bert_s, bert_t, bert_m, q2diff_seqs, m)
+            else:
+                q, y, t, loss, Mv = dkvmn_bert_test(model, q, r, bert_s, bert_t, bert_m, m)
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
             )
