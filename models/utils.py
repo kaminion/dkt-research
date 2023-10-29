@@ -350,7 +350,7 @@ def collate_fn(batch, pad_val=-1):
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
     # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
-    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, bert_sentence_types, bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs, hint_seqs
+    return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, [], bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs, hint_seqs
 
     
 def equalized_odd(y_pred, y_true, sensitive, lambda_s=0.3):
