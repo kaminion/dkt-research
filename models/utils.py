@@ -20,7 +20,9 @@ from torch.nn.functional import one_hot, binary_cross_entropy
 import wandb
 
 # bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-bert_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
+PRETRAIN_DIR = f"{KAKAO_DATASET_DIR}/TOKENIZER/DISTIL_A2009"
+bert_tokenizer = DistilBertTokenizer.from_pretrained(PRETRAIN_DIR)
 
 def match_seq_len(q_seqs, r_seqs, at_seqs, q2diff, pid_seqs, hint_seqs, seq_len, pad_val=-1):
     '''
