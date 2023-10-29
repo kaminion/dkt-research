@@ -331,7 +331,7 @@ def collate_fn(batch, pad_val=-1):
 
         # print(f"============= text: {text} ================")
         encoded_bert_sent = bert_tokenizer.encode_plus(
-            text, add_special_tokens=True, padding='max_length', truncation=True, return_token_type_ids=True
+            text, add_special_tokens=False, padding='max_length', truncation=True
         )
         bert_details.append(encoded_bert_sent)
     
@@ -346,7 +346,7 @@ def collate_fn(batch, pad_val=-1):
     #     proc_atshft_seqs.append(encoded_bert_sent)
 
     bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
-    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
+    # bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
     bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
     # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
