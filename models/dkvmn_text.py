@@ -9,7 +9,7 @@ from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
 from transformers import BertModel, BertConfig, DistilBertConfig, DistilBertModel
-from models.utils import cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc_bert, early_stopping, common_append, val_append, dkvmn_bert_train, dkvmn_bert_train_csedm, dkvmn_bert_test, dkvmn_bert_test_csedm
+from models.utils import bert_tokenizer, cal_acc_class, mean_eval, mean_eval_ext, log_auc, save_auc_bert, early_stopping, common_append, val_append, dkvmn_bert_train, dkvmn_bert_train_csedm, dkvmn_bert_test, dkvmn_bert_test_csedm
 
 import wandb
 
@@ -55,6 +55,7 @@ class SUBJ_DKVMN(Module):
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         distilconfig = DistilBertConfig(output_hidden_states=True)
         self.bertmodel = DistilBertModel.from_pretrained('distilbert-base-uncased', config=distilconfig)
+        self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
         #     ReLU(),
