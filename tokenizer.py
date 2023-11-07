@@ -1,6 +1,7 @@
 import os
 import json
 import pandas as pd
+import numpy as np
 from transformers import DistilBertTokenizer
 from tokenizers import BertWordPieceTokenizer
 
@@ -63,11 +64,13 @@ df = pd.read_csv(dataset_path, encoding='ISO-8859-1').dropna(subset=["skill_name
 # 여기에 map이나 lambda 적용해서 배열 한번에 빼야할 듯
 ds_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased')
 
-ats = df['answer_text'].values
-print(ats)
-for at in ats:
-    new_tokens = ds_tokenizer.tokenize(at)
-    num_added_toks = ds_tokenizer.add_tokens(new_tokens)
+ats = (df['answer_text'].values).tolist()
+# new_tokens = ds_tokenizer.tokenize(ats)
+ds_tokenizer.add_tokens(ats)
+
+# for at in ats:
+#     new_tokens = ds_tokenizer.tokenize(at)
+#     num_added_toks = ds_tokenizer.add_tokens(new_tokens)
     
 print(len(ds_tokenizer))
 ds_tokenizer.save_pretrained(os.path.join(ckpt_path, "DISTIL_A2009"))    
