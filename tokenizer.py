@@ -64,8 +64,11 @@ df = pd.read_csv(dataset_path, encoding='ISO-8859-1').dropna(subset=["skill_name
 ds_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased')
 
 ats = df['answer_text'].values
-print(ats)
+print(f"ats: {ats}")
+ds_tokenizer.add_tokens(ats)
 for at in ats:
+    print(at)
+    break
     new_tokens = ds_tokenizer.tokenize(at)
     num_added_toks = ds_tokenizer.add_tokens(new_tokens)
     
