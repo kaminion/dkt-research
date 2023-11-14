@@ -54,7 +54,8 @@ class SUBJ_DKVMN(Module):
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         distilconfig = DistilBertConfig(output_hidden_states=True)
-        self.bertmodel = DistilBertModel(config=distilconfig)
+        self.bertmodel = DistilBertModel(config=distilconfig, dim=self.dim_s,\
+                                         max_position_embeddings=self.dim_s)
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
