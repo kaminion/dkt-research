@@ -100,7 +100,7 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state)
-        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
+        # em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
