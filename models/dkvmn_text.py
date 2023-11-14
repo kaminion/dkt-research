@@ -53,17 +53,17 @@ class SUBJ_DKVMN(Module):
         # BERT for feature extraction
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        distilconfig = DistilBertConfig(output_hidden_states=True)
-        self.bertmodel = DistilBertModel(config=distilconfig, dim=self.dim_s,\
+        distilconfig = DistilBertConfig(output_hidden_states=True, dim=self.dim_s,\
                                          max_position_embeddings=self.dim_s)
+        self.bertmodel = DistilBertModel(config=distilconfig)
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
         #     ReLU(),
         #     LayerNorm(self.dim_s)
         # )
-        self.at_emb_layer = Linear(768, self.dim_s)
-        self.at2_emb_layer = Linear(512, self.dim_s)
+        # self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at2_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
@@ -97,11 +97,11 @@ class SUBJ_DKVMN(Module):
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
-        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
                     #    token_type_ids=at_t
-                       ).last_hidden_state)
-        em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
+                       ).last_hidden_state
+        # em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
