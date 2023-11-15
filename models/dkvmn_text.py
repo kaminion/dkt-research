@@ -114,7 +114,6 @@ class SUBJ_DKVMN(Module):
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
-        print(x.shape, em_at.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
         
         # Correlation Weight
