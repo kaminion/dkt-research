@@ -54,7 +54,6 @@ class SUBJ_DKVMN(Module):
         # bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
         # self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
         distilconfig = DistilBertConfig(output_hidden_states=True,\
-                                         max_position_embeddings=200, \
                                          dim=self.dim_s, n_heads=10)
         self.bertmodel = DistilBertModel(config=distilconfig)
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
@@ -64,7 +63,7 @@ class SUBJ_DKVMN(Module):
         #     LayerNorm(self.dim_s)
         # )
         # self.at_emb_layer = Linear(768, self.dim_s)
-        # self.at2_emb_layer = Linear(512, self.dim_s)
+        self.at_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
@@ -102,7 +101,7 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        # em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
+        em_at = self.at_emb_layer(em_at.permute(0, 2, 1)).permute(0, 2, 1)
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -116,7 +115,7 @@ class SUBJ_DKVMN(Module):
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
         print(x.shape, em_at.shape)
-        v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
+        v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
