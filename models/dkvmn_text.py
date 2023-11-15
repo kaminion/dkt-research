@@ -62,7 +62,7 @@ class SUBJ_DKVMN(Module):
         #     ReLU(),
         #     LayerNorm(self.dim_s)
         # )
-        self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at_emb_layer = Linear(768, self.dim_s)
         # self.at2_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
@@ -97,10 +97,10 @@ class SUBJ_DKVMN(Module):
         batch_size = x.shape[0]
 
         # BERT를 사용하지 않는다면 주석처리
-        em_at = self.at_emb_layer(self.bertmodel(input_ids=at_s,
+        em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
                     #    token_type_ids=at_t
-                       ).last_hidden_state)
+                       ).last_hidden_state
         print(em_at.shape, self.bertmodel(input_ids=at_s, \
                        attention_mask=at_m, \
                        ).last_hidden_state.shape)
