@@ -101,9 +101,6 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        print(em_at.shape, self.bertmodel(input_ids=at_s, \
-                       attention_mask=at_m, \
-                       ).last_hidden_state.shape)
         # em_at = self.at2_emb_layer(em_at.permute(0, 2, 1))
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
@@ -117,6 +114,7 @@ class SUBJ_DKVMN(Module):
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
+        print(x.shape, em_at.shape)
         v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))).permute(0, 2, 1) # 컨셉수, 응답 수
         
         # Correlation Weight
