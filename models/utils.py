@@ -598,6 +598,7 @@ def dkt_train(model, opt, q, r, qshft_seqs, rshft_seqs, num_q, m):
     
     return y, t, loss
 
+    
 def dkvmn_train(model, opt, q, r, m):
     inpt_q = q.long() 
     inpt_r = r.long()
