@@ -155,8 +155,11 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             
             # CSEDM에선 PID_SEQS 대신 LABEL_SEQ로 취급함. 
             # 현재까지의 입력을 받은 뒤 다음 문제 예측
-        
-            y, t, loss = sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m)
+            
+            if mode == 1:
+                y, t, loss = sakt_train(model, opt, q, r, qshft_seqs, hint_seqs, m)
+            else:
+                y, t, loss = sakt_train(model, opt, q, r, qshft_seqs, rshft_seqs, m)
             
             common_append(y, t, loss, loss_mean, auc_mean, acc_mean)
             
@@ -189,7 +192,10 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
 
-                q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, rshft_seqs, m)
+                if mode == 1:
+                    q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, hint_seqs, m)
+                else:
+                    q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, rshft_seqs, m)
                                 
                 patience_check = early_stopping(best_loss, loss, patience_check)
                 if(patience_check >= patience_limit):
@@ -243,8 +249,11 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
     with torch.no_grad():
         for i, data in enumerate(test_loader):
             q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
-
-            q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, rshft_seqs, m)
+             
+            if mode == 1:
+                q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, hint_seqs, m)
+            else:
+                q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, rshft_seqs, m)
                         
             auc = metrics.roc_auc_score(
                 y_true=t.numpy(), y_score=y.numpy()
