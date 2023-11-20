@@ -6,11 +6,11 @@ from tqdm import tqdm
 import os
 import pickle
 
-KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
-DATASET_DIR = f"{KAKAO_DATASET_DIR}/CSEDM/" 
+# KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
+# DATASET_DIR = f"{KAKAO_DATASET_DIR}/CSEDM/" 
 # KAKAO 때문에 추가
 SAVE_DIR = "/app/outputs/"
-# DATASET_DIR = "datasets/CSEDM/"
+DATASET_DIR = "datasets/CSEDM/"
 Q_SEQ_PICKLE = "q_seqs.pkl"
 R_SEQ_PICKLE = "r_seqs.pkl"
 U_SEQ_PICKLE = "u_seqs.pkl"
