@@ -125,7 +125,8 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             y, t, loss = None, None, None
 
             if mode == 1:
-                y, t, loss = dkt_train(model, opt, q, r, qshft_seqs, q2diff_seqs, num_q, m)
+                # hint_seq 가 다음 정답임
+                y, t, loss = dkt_train(model, opt, q, r, qshft_seqs, hint_seqs, num_q, m)
             else:
                 y, t, loss = dkt_train(model, opt, q, r, qshft_seqs, rshft_seqs, num_q, m)
             
@@ -164,7 +165,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 y, t, loss = None, None, None
                 
                 if mode == 1:
-                    q, y, t, loss = dkt_test(model, q, r, qshft_seqs, q2diff_seqs, num_q, m)
+                    q, y, t, loss = dkt_test(model, q, r, qshft_seqs, hint_seqs, num_q, m)
                 else:
                     q, y, t, loss = dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m)
                                 
@@ -223,7 +224,7 @@ def test_model(model, test_loader, num_q, ckpt_path, mode, use_wandb):
             y, t, loss = None, None, None
             
             if mode == 1:
-                q, y, t, loss = dkt_test(model, q, r, qshft_seqs, q2diff_seqs, num_q, m)
+                q, y, t, loss = dkt_test(model, q, r, qshft_seqs, hint_seqs, num_q, m)
             else:
                 q, y, t, loss = dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m)
             
