@@ -267,6 +267,7 @@ def collate_fn(batch, pad_val=-1):
         atshft_seqs.append(at_seq[1:])
         qshft_seqs.append(torch.tensor(q_seq[1:], dtype=torch.float32, device='cuda'))
         rshft_seqs.append(torch.tensor(r_seq[1:], dtype=torch.float32, device='cuda'))
+        q2diff_seqs.append(torch.tensor(q2diff[:-1], dtype=torch.float32, device='cuda'))
         pid_seqs.append(torch.tensor(pid_seq[:-1], dtype=torch.float32, device='cuda'))
         pidshft_seqs.append(torch.tensor(pid_seq[1:], dtype=torch.float32, device='cuda'))
         hint_seqs.append(torch.tensor(hint_seq[:-1], dtype=torch.float32, device='cuda'))
