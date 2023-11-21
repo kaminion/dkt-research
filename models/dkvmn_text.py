@@ -62,8 +62,8 @@ class SUBJ_DKVMN(Module):
         #     ReLU(),
         #     LayerNorm(self.dim_s)
         # )
-        # self.at_emb_layer = Linear(768, self.dim_s)
-        self.at_emb_layer = Linear(512, self.dim_s)
+        self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at_emb_layer = Linear(512, self.dim_s)
 
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
@@ -93,7 +93,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + r * self.num_q).permute(0, 2, 1)
+        x = self.qr_emb_layer(q + r * self.num_q)
         batch_size = x.shape[0]
         
         print(f"BERT_ids shape: {at_s.shape}")
@@ -104,7 +104,7 @@ class SUBJ_DKVMN(Module):
                     #    token_type_ids=at_t
                        ).last_hidden_state
         print(f"em_at.shape:{em_at.shape}")
-        em_at = self.at_emb_layer(em_at.permute(0, 2, 1)).permute(0, 2, 1)
+        em_at = self.at_emb_layer(em_at)
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
