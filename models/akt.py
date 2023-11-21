@@ -438,9 +438,9 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
             recall_mean = []
             f1_mean = []
             
-            best_loss = 10 ** 9
-            patience_limit = 3
-            patience_check = 0
+            # best_loss = 10 ** 9
+            # patience_limit = 3
+            # patience_check = 0
 
             for data in valid_loader:
                 q, r, qshft_seqs, rshft_seqs, m, bert_s, bert_t, bert_m, q2diff_seqs, pid_seqs, pidshift, hint_seqs = data
@@ -452,9 +452,9 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 else:
                     q, y, t, loss = akt_test(model, q, r, pid_seqs, m)
                                 
-                patience_check = early_stopping(best_loss, loss, patience_check)
-                if(patience_check >= patience_limit):
-                    break
+                # patience_check = early_stopping(best_loss, loss, patience_check)
+                # if(patience_check >= patience_limit):
+                #     break
                 
                 try:
                     auc = metrics.roc_auc_score(y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy())

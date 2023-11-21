@@ -197,9 +197,9 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
                 else:
                     q, y, t, loss, Aw = sakt_test(model, q, r, qshft_seqs, rshft_seqs, m)
                                 
-                patience_check = early_stopping(best_loss, loss, patience_check)
-                if(patience_check >= patience_limit):
-                    break
+                # patience_check = early_stopping(best_loss, loss, patience_check)
+                # if(patience_check >= patience_limit):
+                #     break
                 
                 try:
                     auc = metrics.roc_auc_score(y_true=t.detach().cpu().numpy(), y_score=y.detach().cpu().numpy())

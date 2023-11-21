@@ -347,6 +347,10 @@ def main(model_name, dataset_name, use_wandb):
                 'size_m': {'values': [20, 50]}
                 # 'emb_size': {'values': [256, 512]},
                 # 'hidden_size': {'values': [256, 512]}
+            },
+            'early_terminate':{
+                'type': 'hyperband',
+                'min_iter': 3,
             }
         }
         
