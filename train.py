@@ -128,6 +128,7 @@ def main(model_name, dataset_name, use_wandb):
         dataset = CSEDM(seq_len)
         collate_pt = collate_csedm
 
+    device = "cuda"
     if torch.cuda.is_available():
         device = "cuda"
     else:
