@@ -1,4 +1,5 @@
 import os 
+import time
 from tqdm import tqdm
 
 import torch 
@@ -144,6 +145,7 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
         # "dropout": 0.1
         
     for epoch in range(0, num_epochs):
+        time.sleep(35)
         auc_mean = []
         loss_mean = []
         acc_mean = []
