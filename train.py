@@ -204,7 +204,7 @@ def main(model_name, dataset_name, use_wandb):
     test_size = data_size - train_size - valid_size
 
     train_dataset, valid_dataset, test_dataset = random_split(
-        dataset, [train_size, valid_size, test_size], generator=torch.Generator(device='cuda')
+        dataset, [train_size, valid_size, test_size], generator=torch.Generator(device=device)
     )
     
     # 연결
