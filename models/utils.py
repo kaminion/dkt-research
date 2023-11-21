@@ -15,6 +15,8 @@ from torch.nn.functional import one_hot, binary_cross_entropy
 
 import wandb
 
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
 # bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 # KAKAO_DATASET_DIR = "/app/input/dataset/dkt-dataset"
 # PRETRAIN_DIR = f"{KAKAO_DATASET_DIR}/TOKENIZER/DISTIL_A2009"
