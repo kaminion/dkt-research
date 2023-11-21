@@ -96,12 +96,15 @@ class SUBJ_DKVMN(Module):
         '''
         x = self.qr_emb_layer(q + r * self.num_q).permute(0, 2, 1)
         batch_size = x.shape[0]
+        
+        print(f"BERT_ids shape: {at_s.shape}")
 
         # BERT를 사용하지 않는다면 주석처리
         em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
+        print(f"em_at.shape:{em_at.shape}")
         em_at = self.at_emb_layer(em_at.permute(0, 2, 1)).permute(0, 2, 1)
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
