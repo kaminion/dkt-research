@@ -5,11 +5,7 @@ import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
-if torch.cuda.is_available():
-    from torch.cuda import FloatTensor, CharTensor, LongTensor
-    torch.set_default_tensor_type(torch.cuda.FloatTensor)
-else:
-    from torch import FloatTensor, CharTensor, LongTensor
+from torch import CharTensor, LongTensor
 
 from transformers import BertTokenizer, DistilBertTokenizer
 
@@ -152,16 +148,16 @@ def collate_csedm(batch, pad_val=-1):
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
     for q_seq, r_seq, at_seq, pid_seq, label_seq, hint_seq in batch:
-        q_seqs.append(FloatTensor(q_seq[:-1])) 
-        r_seqs.append(FloatTensor(r_seq[:-1]))
+        q_seqs.append(torch.tensor(q_seq[:-1], dtype=torch.float32, device='cuda')) 
+        r_seqs.append(torch.tensor(r_seq[:-1], dtype=torch.float32, device='cuda'))
         at_seqs.append(at_seq[:-1])
         atshft_seqs.append(at_seq[1:])
-        qshft_seqs.append(FloatTensor(q_seq[1:]))
-        rshft_seqs.append(FloatTensor(r_seq[1:]))
-        pid_seqs.append(FloatTensor(pid_seq[:-1]))
-        pidshft_seqs.append(FloatTensor(pid_seq[1:]))
-        label_seqs.append(FloatTensor(label_seq[:-1]))
-        labshft_seqs.append(FloatTensor(label_seq[1:]))
+        qshft_seqs.append(torch.tensor(q_seq[1:], dtype=torch.float32, device='cuda'))
+        rshft_seqs.append(torch.tensor(r_seq[1:], dtype=torch.float32, device='cuda'))
+        pid_seqs.append(torch.tensor(pid_seq[:-1], dtype=torch.float32, device='cuda'))
+        pidshft_seqs.append(torch.tensor(pid_seq[1:], dtype=torch.float32, device='cuda'))
+        label_seqs.append(torch.tensor(label_seq[:-1], dtype=torch.float32, device='cuda'))
+        labshft_seqs.append(torch.tensor(label_seq[1:], dtype=torch.float32, device='cuda'))
 
     # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
     # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
@@ -220,9 +216,9 @@ def collate_csedm(batch, pad_val=-1):
         bert_details.append(encoded_bert_sent)
     
 
-    bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
-    bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
-    bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
+    bert_sentences = torch.tensor([text["input_ids"] for text in bert_details], dtype=torch.long, device='cuda')
+    bert_sentence_types = torch.tensor([text["token_type_ids"] for text in bert_details], dtype=torch.long, device="cuda")
+    bert_sentence_att_mask = torch.tensor([text["attention_mask"] for text in bert_details], dtype=torch.long, device="cuda")
     # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
     # CSEDM는 q2diff가 label_seq, hint_seq가 labshft_seq다.
@@ -263,17 +259,16 @@ def collate_fn(batch, pad_val=-1):
     # q_seq와 r_seq는 마지막 전까지만 가져옴 (마지막은 padding value)
     # q_shft와 rshft는 처음 값 이후 가져옴 (우측 시프트 값이므로..)
     for q_seq, r_seq, at_seq, q2diff, pid_seq, hint_seq in batch:
-        q_seqs.append(FloatTensor(q_seq[:-1])) 
-        r_seqs.append(FloatTensor(r_seq[:-1]))
+        q_seqs.append(torch.tensor(q_seq[:-1], dtype=torch.float32, device='cuda')) 
+        r_seqs.append(torch.tensor(r_seq[:-1], dtype=torch.float32, device='cuda'))
         at_seqs.append(at_seq[:-1])
         atshft_seqs.append(at_seq[1:])
-        qshft_seqs.append(FloatTensor(q_seq[1:]))
-        rshft_seqs.append(FloatTensor(r_seq[1:]))
-        q2diff_seqs.append(FloatTensor(q2diff[:-1]))
-        pid_seqs.append(FloatTensor(pid_seq[:-1]))
-        pidshft_seqs.append(FloatTensor(pid_seq[1:]))
-        hint_seqs.append(FloatTensor(hint_seq[:-1]))
-
+        qshft_seqs.append(torch.tensor(q_seq[1:], dtype=torch.float32, device='cuda'))
+        rshft_seqs.append(torch.tensor(r_seq[1:], dtype=torch.float32, device='cuda'))
+        pid_seqs.append(torch.tensor(pid_seq[:-1], dtype=torch.float32, device='cuda'))
+        pidshft_seqs.append(torch.tensor(pid_seq[1:], dtype=torch.float32, device='cuda'))
+        hint_seqs.append(torch.tensor(hint_seq[:-1], dtype=torch.float32, device='cuda'))
+        
     # pad_sequence, 첫번째 인자는 sequence, 두번째는 batch_size가 첫 번째로 인자로 오게 하는 것이고, 3번째 인자의 경우 padding된 요소의 값
     # 시퀀스 내 가장 길이가 긴 시퀀스를 기준으로 padding이 됨, 길이가 안맞는 부분은 늘려서 padding_value 값으로 채워줌
     q_seqs = pad_sequence(
@@ -346,9 +341,10 @@ def collate_fn(batch, pad_val=-1):
     #     )
     #     proc_atshft_seqs.append(encoded_bert_sent)
 
-    bert_sentences = LongTensor([text["input_ids"] for text in bert_details])
-    # bert_sentence_types = LongTensor([text["token_type_ids"] for text in bert_details])
-    bert_sentence_att_mask = LongTensor([text["attention_mask"] for text in bert_details])
+
+    bert_sentences = torch.tensor([text["input_ids"] for text in bert_details], dtype=torch.long, device='cuda')
+    # bert_sentence_types = torch.tensor([text["token_type_ids"] for text in bert_details], dtype=torch.long, device="cuda")
+    bert_sentence_att_mask = torch.tensor([text["attention_mask"] for text in bert_details], dtype=torch.long, device="cuda")
     # proc_atshft_sentences = LongTensor([text["input_ids"] for text in proc_atshft_seqs])
 
     return q_seqs, r_seqs, qshft_seqs, rshft_seqs, mask_seqs, bert_sentences, [], bert_sentence_att_mask, q2diff_seqs, pid_seqs, pidshft_seqs, hint_seqs
