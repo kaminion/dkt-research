@@ -146,14 +146,14 @@ class SUBJ_DKVMN(Module):
         f = self.dropout_layer(f)
         
         # BERT를 사용하지 않는다면 주석처리
-        em_at = self.bertmodel(input_ids=at_s,
+        ori_em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        em_at = self.at_emb_layer(em_at)
+        em_at = torch.tanh(self.at_emb_layer(ori_em_at))
         # ability = torch.tanh(self.fusion_layer(torch.concat([f, em_at], dim=-1)))
         
-        em_at = torch.tanh(self.fusion_norm(f + em_at))
+        em_at = self.fusion_norm(em_at + ori_em_at) + f
         
         p = self.p_layer(em_at)
 
