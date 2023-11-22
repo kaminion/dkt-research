@@ -83,6 +83,56 @@ torch.cuda.manual_seed_all(seed)
     #torch.backends.cudnn.deterministic = True
     #torch.backends.cudnn.benchmark = False
     
+def create_model(model_name, num_q, num_pid, model_config, device):
+    model, train_model, test_model = None, None, None
+    
+    if model_name == "dkt":
+        model = torch.nn.DataParallel(DKT(num_q, **model_config)).to(device)
+        train_model = dkt_train
+        test_model = dkt_test
+    elif model_name == "dkf":
+        model = torch.nn.DataParallel(DKT_F(num_q, **model_config)).to(device)
+    elif model_name == "dkt-":
+        model = torch.nn.DataParallel(DKT_FRONT(num_q, **model_config)).to(device)
+    elif model_name == "dkt+":
+        model = torch.nn.DataParallel(DKT_REAR(num_q, **model_config)).to(device)
+    elif model_name == 'dkvmn':
+        model = torch.nn.DataParallel(DKVMN(num_q, **model_config)).to(device)
+        train_model = dkvmn_train
+        test_model = dkvmn_test
+    elif model_name == 'dkvmn+':
+        model = torch.nn.DataParallel(SUBJ_DKVMN(num_q, **model_config)).to(device)
+        train_model = plus_train
+        test_model = plus_test
+    elif model_name == 'dkvmn-':
+        model = torch.nn.DataParallel(BACK_DKVMN(num_q, **model_config)).to(device)
+    elif model_name == 'sakt':
+        model = torch.nn.DataParallel(SAKT(num_q, **model_config)).to(device)
+        train_model = sakt_train 
+        test_model = sakt_test
+    elif model_name == 'sakt-':
+        model = torch.nn.DataParallel(SAKT_FRONT(num_q, **model_config)).to(device)
+    elif model_name == 'sakt+':
+        model = torch.nn.DataParallel(SAKT_REAR(num_q, **model_config)).to(device)
+    elif model_name == 'saint':
+        model = torch.nn.DataParallel(SAINT(num_q, **model_config)).to(device)
+        train_model = saint_train
+        test_model = saint_test
+    elif model_name == 'saint-':
+        model = torch.nn.DataParallel(SAINT_FRONT(num_q, **model_config)).to(device)
+    elif model_name == "saint+":
+        model = torch.nn.DataParallel(SAINT_REAR(num_q, **model_config)).to(device)
+    elif model_name == 'akt':
+        model = torch.nn.DataParallel(AKT(n_question=num_q, n_pid=num_pid, **model_config)).to(device)
+        train_model = akt_train
+        test_model = akt_test
+
+    else: 
+        print(f"The wrong model name was used...: {model_name}")
+        return
+    
+    return model, train_model, test_model
+    
 
 # main program
 def main(model_name, dataset_name, use_wandb):
@@ -142,60 +192,12 @@ def main(model_name, dataset_name, use_wandb):
 
     
     ## 가변 벡터이므로 **
+    model = None
     train_model = None
     test_model = None
-    if model_name == "dkt":
-        model = torch.nn.DataParallel(DKT(dataset.num_q, **model_config)).to(device)
-        train_model = dkt_train
-        test_model = dkt_test
-    elif model_name == "dkf":
-        model = torch.nn.DataParallel(DKT_F(dataset.num_q, **model_config)).to(device)
-    elif model_name == "dkt-":
-        model = torch.nn.DataParallel(DKT_FRONT(dataset.num_q, **model_config)).to(device)
-    elif model_name == "dkt+":
-        model = torch.nn.DataParallel(DKT_REAR(dataset.num_q, **model_config)).to(device)
-    elif model_name == 'dkvmn':
-        model = torch.nn.DataParallel(DKVMN(dataset.num_q, **model_config)).to(device)
-        train_model = dkvmn_train
-        test_model = dkvmn_test
-    elif model_name == 'dkvmn+':
-        model = torch.nn.DataParallel(SUBJ_DKVMN(dataset.num_q, num_qid=dataset.num_pid, **model_config)).to(device)
-        train_model = plus_train
-        test_model = plus_test
-    elif model_name == 'dkvmn-':
-        model = torch.nn.DataParallel(BACK_DKVMN(dataset.num_q, **model_config)).to(device)
-    elif model_name == 'sakt':
-        model = torch.nn.DataParallel(SAKT(dataset.num_q, **model_config)).to(device)
-        train_model = sakt_train 
-        test_model = sakt_test
-    elif model_name == 'sakt-':
-        model = torch.nn.DataParallel(SAKT_FRONT(dataset.num_q, **model_config)).to(device)
-    elif model_name == 'sakt+':
-        model = torch.nn.DataParallel(SAKT_REAR(dataset.num_q, **model_config)).to(device)
-    elif model_name == 'saint':
-        model = torch.nn.DataParallel(SAINT(dataset.num_q, **model_config)).to(device)
-        train_model = saint_train
-        test_model = saint_test
-    elif model_name == 'saint-':
-        model = torch.nn.DataParallel(SAINT_FRONT(dataset.num_q, **model_config)).to(device)
-    elif model_name == "saint+":
-        model = torch.nn.DataParallel(SAINT_REAR(dataset.num_q, **model_config)).to(device)
-    elif model_name == 'akt':
-        model = torch.nn.DataParallel(AKT(n_question=dataset.num_q, n_pid=dataset.num_pid, **model_config)).to(device)
-        train_model = akt_train
-        test_model = akt_test
-    elif model_name == "auto":
-        model = torch.nn.DataParallel(AUTO(num_q=dataset.num_q, **model_config)).to(device)
-    elif model_name == "mekt":
-        model = MEKT(dataset.num_q, **model_config).to(device)
-    elif model_name == "dirt":
-        model = DeepIRT(dataset.num_q, dataset.num_u, **model_config).to(device)
-    elif model_name == "qakt":
-        model = QAKT(dataset.num_q, **model_config).to(device)
+    # test 모델 때문에 추가
+    _, _, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
 
-    else: 
-        print(f"The wrong model name was used...: {model_name}")
-        return
     
     # 데이터셋 분할
     data_size = len(dataset)
@@ -238,12 +240,12 @@ def main(model_name, dataset_name, use_wandb):
         ) as f:
             pickle.dump(test_dataset.indices, f)
         
-    if optimizer == "sgd":
-        opt = SGD(model.parameters(), learning_rate, momentum=0.9)
-    elif optimizer == "adam":
-        opt = Adam(model.parameters(), learning_rate)
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
-    opt.lr_scheduler = lr_scheduler
+    # if optimizer == "sgd":
+    #     opt = SGD(model.parameters(), learning_rate, momentum=0.9)
+    # elif optimizer == "adam":
+    #     opt = Adam(model.parameters(), learning_rate)
+    # lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+    # opt.lr_scheduler = lr_scheduler
     
     # IIFE 즉시 실행 함수로 패킹해서 wandb로 넘겨줌
     def train_main():
@@ -273,8 +275,25 @@ def main(model_name, dataset_name, use_wandb):
             wandb.summary["num_cv_folds"] = kfold.n_splits
             wandb.summary["cv_random_state"] = kfold.random_state
             
-            opt.param_groups[0]['lr'] = wandb.config.learning_rate
+            # config 설정
+            if model_name != 'dkvmn':
+                model_config['dropout'] = wandb.config.dropout
+            if model_name == 'dkt':
+                model_config['emb_size'] = wandb.config.emb_size
+            if model_name in ['dkt', 'sakt', 'saint']:
+                model_config['hidden_size'] = wandb.config.hidden_size
+            elif model_name == 'akt':
+                model_config['d_ff'] = wandb.config.d_ff
+                model_config['d_model'] = wandb.config.d_model
+            elif model_name == 'dkvmn':
+                model_config['dim_s'] = wandb.config.dim_s
+                model_config['size_m'] = wandb.config.size_m
             
+            model, train_model, _ = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
+            opt = Adam(model.parameters(), wandb.config.learning_rate)
+            lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+            opt.lr_scheduler = lr_scheduler
+    
             # 모델 파라미터
             # model.hidden_size = wandb.config.hidden_size
             model.dropout = wandb.config.dropout
@@ -363,6 +382,12 @@ def main(model_name, dataset_name, use_wandb):
             valid_dataset, batch_size=batch_size,
             collate_fn=collate_pt, generator=torch.Generator(device=device)
         )
+        
+        model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
+        opt = Adam(model.parameters(), learning_rate)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+        opt.lr_scheduler = lr_scheduler
+
         train_model(
             model, train_loader, valid_loader, dataset.num_q, num_epochs, opt, ckpt_path, mode, use_wandb
         )

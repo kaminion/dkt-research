@@ -21,11 +21,10 @@ class SUBJ_DKVMN(Module):
             dim_s: the dimension of the state vectors in this model
             size_m: the memory size of this model
     '''
-    def __init__(self, num_q, num_qid, dim_s, size_m) -> None:
+    def __init__(self, num_q, dim_s, size_m) -> None:
         super(SUBJ_DKVMN, self).__init__()
         self.num_q = num_q 
         # 새로추가 됨
-        self.num_qid = num_qid
         self.dim_s = dim_s 
         self.size_m = size_m
 
