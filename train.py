@@ -273,7 +273,6 @@ def main(model_name, dataset_name, use_wandb):
             wandb.summary["num_cv_folds"] = kfold.n_splits
             wandb.summary["cv_random_state"] = kfold.random_state
             
-            num_epochs = wandb.config.epochs
             opt.param_groups[0]['lr'] = wandb.config.learning_rate
             
             # 모델 파라미터
@@ -339,7 +338,6 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'epochs': {'values': [300]},
                 'seed': {'values': [3407]},
                 'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
                 'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
