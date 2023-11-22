@@ -153,8 +153,12 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
+        
+        
         print(f"em_at.shape:{em_at.shape}, x: {x.shape} q: {q.shape}")
+        em_at = torch.concat([x, em_at.reshape(0, 2, 1)], dim=-1).reshape(0, 2, 1)
         em_at = self.at_emb_layer(em_at)
+        print(p.shape, em_at.shape)
 
         return p, Mv
     
