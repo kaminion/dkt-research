@@ -152,7 +152,9 @@ class SUBJ_DKVMN(Module):
                     #    token_type_ids=at_t
                        ).last_hidden_state
         em_at = self.at_emb_layer(em_at)
-        em_at = torch.tanh(self.fusion_layer(torch.concat([f, em_at], dim=-1)))
+        # ability = torch.tanh(self.fusion_layer(torch.concat([f, em_at], dim=-1)))
+        
+        em_at = torch.tanh(self.fusion_norm(f + em_at))
         
         p = self.p_layer(em_at)
 
