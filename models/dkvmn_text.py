@@ -155,8 +155,8 @@ class SUBJ_DKVMN(Module):
                        ).last_hidden_state
         
         
-        print(f"em_at.shape:{em_at.shape}, x: {k.shape} q: {q.shape}")
-        em_at = torch.concat([k, em_at.permute(0, 2, 1)], dim=-1)
+        print(f"em_at.shape:{em_at.shape}, k: {k.shape} q: {q.shape}")
+        em_at = torch.concat([q, em_at.permute(0, 2, 1)], dim=-1)
         em_at = self.at_emb_layer(em_at)
         print(p.shape, em_at.shape)
 
