@@ -76,6 +76,8 @@ class SUBJ_DKVMN(Module):
 
         # final network
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
+        self.fusion_layer = Linear(2 * self.dim_s, self.dim_s)
+        self.fusion_norm = LayerNorm(self.dim_s, self.dim_s)
         self.p_layer = Linear(2 * self.dim_s, 1)
 
         self.dropout_layer = Dropout(0.2)
@@ -150,7 +152,7 @@ class SUBJ_DKVMN(Module):
                     #    token_type_ids=at_t
                        ).last_hidden_state
         em_at = self.at_emb_layer(em_at)
-        em_at = torch.concat([f, em_at], dim=-1)
+        em_at = torch.tanh(self.fusion_layer(torch.concat([f, em_at], dim=-1)))
         
         p = self.p_layer(em_at)
 
