@@ -68,8 +68,8 @@ class SUBJ_DKVMN(Module):
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
         # 버트 허용여부
-        # self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
-        self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
+        self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        # self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
@@ -93,18 +93,12 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = self.qr_emb_layer(q + r * self.num_q)
+        x = q + r * self.num_q
+        
         batch_size = x.shape[0]
         
         # print(f"BERT_ids shape: {at_s.shape}")
 
-        # BERT를 사용하지 않는다면 주석처리
-        em_at = self.bertmodel(input_ids=at_s,
-                       attention_mask=at_m,
-                    #    token_type_ids=at_t
-                       ).last_hidden_state
-        # print(f"em_at.shape:{em_at.shape}")
-        em_at = self.at_emb_layer(em_at)
 
         # unsqueeze는 지정된 위치에 크기가 1인 텐서 생성 
         # repeat은 현재 갖고 있는 사이즈에 매개변수 만큼 곱해주는 것 (공간 생성, element가 있다면 해당 element 곱해줌.)
@@ -114,10 +108,11 @@ class SUBJ_DKVMN(Module):
 
         # 논문에서 봤던 대로 좌 우측 임베딩.
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수
+        v = self.v_emb_layer(x)
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
-        v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
+        # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
         
         # Correlation Weight
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
@@ -147,11 +142,19 @@ class SUBJ_DKVMN(Module):
             )
             )
         )
-
+        
         p = self.p_layer(self.dropout_layer(f))
 
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
+        
+        # BERT를 사용하지 않는다면 주석처리
+        em_at = self.bertmodel(input_ids=at_s,
+                       attention_mask=at_m,
+                    #    token_type_ids=at_t
+                       ).last_hidden_state
+        print(f"em_at.shape:{em_at.shape}, x: {x.shape} q: {q.shape}")
+        em_at = self.at_emb_layer(em_at)
 
         return p, Mv
     
