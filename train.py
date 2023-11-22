@@ -253,27 +253,17 @@ def main(model_name, dataset_name, use_wandb):
         num_epochs = train_config["num_epochs"]
         kfold = KFold(n_splits=5, shuffle=True)
 
+        opt = Adam(model.parameters(), wandb.config.learning_rate)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+        opt.lr_scheduler = lr_scheduler
+        
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             fold += 1
             print(f"========={fold}==========")
-            model.apply(reset_weight)
             
             cv_name = f"{wandb.util.generate_id()}"
             run_name = f"{date.today().isoformat()}-{cv_name}-{fold:02}-runs"
             run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
-            
-            seed = wandb.config.seed
-            random.seed(seed)
-            np.random.seed(seed)
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
-            
-            
-            assert run is not None
-            assert type(run) is wandb.sdk.wandb_run.Run
-            wandb.summary["cv_fold"] = fold
-            wandb.summary["num_cv_folds"] = kfold.n_splits
-            wandb.summary["cv_random_state"] = kfold.random_state
             
             # config 설정
             if model_name != 'dkvmn':
@@ -290,13 +280,26 @@ def main(model_name, dataset_name, use_wandb):
                 model_config['size_m'] = wandb.config.size_m
             
             model, train_model, _ = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
-            opt = Adam(model.parameters(), wandb.config.learning_rate)
-            lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
-            opt.lr_scheduler = lr_scheduler
-    
+            
+            model.apply(reset_weight)
+            
+            
+            seed = wandb.config.seed
+            random.seed(seed)
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+            
+            
+            assert run is not None
+            assert type(run) is wandb.sdk.wandb_run.Run
+            wandb.summary["cv_fold"] = fold
+            wandb.summary["num_cv_folds"] = kfold.n_splits
+            wandb.summary["cv_random_state"] = kfold.random_state
+            
             # 모델 파라미터
             # model.hidden_size = wandb.config.hidden_size
-            model.dropout = wandb.config.dropout
+            # model.dropout = wandb.config.dropout
             
             # Sample elements randomly from a given list of ids, no replacement.
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
