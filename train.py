@@ -253,9 +253,7 @@ def main(model_name, dataset_name, use_wandb):
         num_epochs = train_config["num_epochs"]
         kfold = KFold(n_splits=5, shuffle=True)
 
-        opt = Adam(model.parameters(), wandb.config.learning_rate)
-        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
-        opt.lr_scheduler = lr_scheduler
+
         
         for fold, (train_ids, valid_ids) in enumerate(kfold.split(tv_dataset)):
             fold += 1
@@ -282,7 +280,9 @@ def main(model_name, dataset_name, use_wandb):
             model, train_model, _ = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
             
             model.apply(reset_weight)
-            
+            opt = Adam(model.parameters(), wandb.config.learning_rate)
+            lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
+            opt.lr_scheduler = lr_scheduler
             
             seed = wandb.config.seed
             random.seed(seed)
