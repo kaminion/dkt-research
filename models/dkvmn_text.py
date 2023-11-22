@@ -76,7 +76,7 @@ class SUBJ_DKVMN(Module):
 
         # final network
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
-        self.p_layer = Linear(self.dim_s, 1)
+        self.p_layer = Linear(2 * self.dim_s, 1)
 
         self.dropout_layer = Dropout(0.2)
         
@@ -142,23 +142,20 @@ class SUBJ_DKVMN(Module):
             )
             )
         )
-        
-        p = self.p_layer(self.dropout_layer(f))
-
-        p = torch.sigmoid(p)
-        p = p.squeeze(-1)
+        f = self.dropout_layer(f)
         
         # BERT를 사용하지 않는다면 주석처리
         em_at = self.bertmodel(input_ids=at_s,
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        
-        
-        print(f"em_at.shape:{em_at.shape}, k: {k.shape} q: {q.shape}")
         em_at = self.at_emb_layer(em_at)
-        em_at = torch.concat([k, em_at], dim=-1)
-        print(p.shape, em_at.shape)
+        em_at = torch.concat([f, em_at], dim=-1)
+        
+        p = self.p_layer(em_at)
+
+        p = torch.sigmoid(p)
+        p = p.squeeze(-1)
 
         return p, Mv
     
