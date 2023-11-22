@@ -196,7 +196,7 @@ def main(model_name, dataset_name, use_wandb):
     train_model = None
     test_model = None
     # test 모델 때문에 추가
-    _, _, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
+    model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
 
     
     # 데이터셋 분할
@@ -359,7 +359,7 @@ def main(model_name, dataset_name, use_wandb):
             'parameters': {
                 'seed': {'values': [3407]},
                 'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
-                'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
+                'learning_rate': {'values': [1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
                 'dim_s': {'values': [20, 50]},
                 'size_m': {'values': [20, 50]}
                 # 'emb_size': {'values': [256, 512]},
