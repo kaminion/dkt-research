@@ -78,7 +78,7 @@ class SUBJ_DKVMN(Module):
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
         self.fusion_layer = Linear(2 * self.dim_s, self.dim_s)
         self.fusion_norm = LayerNorm(self.dim_s, self.dim_s)
-        self.p_layer = Linear(2 * self.dim_s, 1)
+        self.p_layer = Linear(self.dim_s, 1)
 
         self.dropout_layer = Dropout(0.2)
         
