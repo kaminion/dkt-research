@@ -195,8 +195,6 @@ def main(model_name, dataset_name, use_wandb):
     model = None
     train_model = None
     test_model = None
-    # test 모델 때문에 추가
-    model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
 
     
     # 데이터셋 분할
@@ -402,6 +400,12 @@ def main(model_name, dataset_name, use_wandb):
     test_dataset, batch_size=batch_size,
     collate_fn=collate_pt, generator=torch.Generator(device=device),
     )
+    
+    # test 모델 때문에 추가
+    # 하이퍼 파라미터 설정값 로드
+    with open(os.path.join(ckpt_path, "model_config.json"), "rb") as f:
+        model_config = json.load(f)
+    model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
     test_model(
