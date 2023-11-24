@@ -32,7 +32,8 @@
     },
     "dkvmn+":{
         "dim_s": 50,
-        "size_m": 20
+        "size_m": 20,
+        "dropout": 0.2
     },
     "dkvmn-":{
         "dim_s": 50,

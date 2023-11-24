@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np 
 import torch 
 
-from torch.nn import Module, Parameter, Embedding, Linear, Dropout, TransformerEncoder, TransformerEncoderLayer, Sequential, LayerNorm, ReLU
+from torch.nn import Module, Parameter, Embedding, Linear, Dropout, GRU, TransformerEncoderLayer, Sequential, LayerNorm, ReLU
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
@@ -21,12 +21,13 @@ class SUBJ_DKVMN(Module):
             dim_s: the dimension of the state vectors in this model
             size_m: the memory size of this model
     '''
-    def __init__(self, num_q, dim_s, size_m) -> None:
+    def __init__(self, num_q, dim_s, size_m, dropout) -> None:
         super(SUBJ_DKVMN, self).__init__()
         self.num_q = num_q 
         # 새로추가 됨
         self.dim_s = dim_s 
         self.size_m = size_m
+        self.dropout = dropout
 
         # M은 각 location의 벡터사이즈, N은 memory location의 수 
         # Mt: N*M matrix
@@ -56,6 +57,10 @@ class SUBJ_DKVMN(Module):
         self.bertmodel = DistilBertModel.from_pretrained('bert-base-uncased', config=distilconfig)
         # self.bertmodel = DistilBertModel(config=distilconfig)
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
+        
+        # BERT output dimension: 768
+        self.gru = GRU(768, self.dim_s, batch_first=True, dropout=self.dropout)
+        
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
         #     ReLU(),
@@ -79,7 +84,7 @@ class SUBJ_DKVMN(Module):
         self.fusion_norm = LayerNorm(self.dim_s, self.dim_s)
         self.p_layer = Linear(self.dim_s, 1)
 
-        self.dropout_layer = Dropout(0.2)
+        self.dropout_layer = Dropout(self.dropout)
         
 
     
@@ -150,7 +155,7 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        em_at = self.at_emb_layer(em_at)
+        em_at = self.gru(em_at)
         
         abil = torch.tanh(self.fusion_layer(f + em_at))
         
