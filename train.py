@@ -262,8 +262,6 @@ def main(model_name, dataset_name, use_wandb):
             run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
             
             # config 설정
-            if model_name != 'dkvmn':
-                model_config['dropout'] = wandb.config.dropout
             if model_name == 'dkt':
                 model_config['emb_size'] = wandb.config.emb_size
             if model_name in ['dkt', 'sakt', 'saint']:
@@ -271,7 +269,7 @@ def main(model_name, dataset_name, use_wandb):
             elif model_name == 'akt':
                 model_config['d_ff'] = wandb.config.d_ff
                 model_config['d_model'] = wandb.config.d_model
-            elif model_name == 'dkvmn':
+            elif model_name in ['dkvmn', 'dkvmn+']:
                 model_config['dim_s'] = wandb.config.dim_s
                 model_config['size_m'] = wandb.config.size_m
             
@@ -360,11 +358,11 @@ def main(model_name, dataset_name, use_wandb):
             'parameters': {
                 'seed': {'values': [3407]},
                 'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
-                'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
-                # 'dim_s': {'values': [20, 50]},
-                # 'size_m': {'values': [20, 50]}
+                'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
+                'dim_s': {'values': [20, 50]},
+                'size_m': {'values': [20, 50]}
                 # 'emb_size': {'values': [256, 512]},
-                'hidden_size': {'values': [50, 100, 150, 200]}
+                # 'hidden_size': {'values': [50, 100, 150, 200]}
                 # "d_ff": {'values': [256, 512]},
                 # "d_model": {'values': [256, 512]}
             },
@@ -403,7 +401,7 @@ def main(model_name, dataset_name, use_wandb):
     
     # test 모델 때문에 추가
     # 하이퍼 파라미터 설정값 로드
-    with open(os.path.join(ckpt_path, "model_config.json"), "rb") as f:
+    with open(os.path.join(ckpt_path, "model_config.json"), "r") as f:
         model_config = json.load(f)
     model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
     

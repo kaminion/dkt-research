@@ -155,7 +155,7 @@ class SUBJ_DKVMN(Module):
                        attention_mask=at_m,
                     #    token_type_ids=at_t
                        ).last_hidden_state
-        em_at = self.gru(em_at)
+        em_at, _ = self.gru(em_at)
         
         abil = torch.tanh(self.fusion_layer(f + em_at))
         
