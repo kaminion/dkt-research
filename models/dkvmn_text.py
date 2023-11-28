@@ -59,7 +59,7 @@ class SUBJ_DKVMN(Module):
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         
         # BERT output dimension: 768
-        self.gru = GRU(768, self.dim_s, batch_first=True, dropout=self.dropout)
+        self.gru = GRU(768, self.dim_s, batch_first=True)
         
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
@@ -72,7 +72,7 @@ class SUBJ_DKVMN(Module):
         self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
         # 버트 허용여부
-        self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.v_emb_layer = Embedding(self.num_q, self.dim_s)
         # self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
@@ -99,7 +99,8 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
-        x = q + r * self.num_q
+        # x = q + r * self.num_q
+        x = q 
         
         batch_size = x.shape[0]
         
@@ -118,6 +119,14 @@ class SUBJ_DKVMN(Module):
         
         # BERT 사용 여부
         # v = self.v_emb_layer(q + r) 
+        # BERT를 사용하지 않는다면 주석처리
+        em_at = self.bertmodel(input_ids=at_s,
+                       attention_mask=at_m,
+                    #    token_type_ids=at_t
+                       ).last_hidden_state
+        em_at, _ = self.gru(em_at)
+        fusion = self.fusion_layer(v + em_at)
+        v = self.fusion_norm(v + em_at + fusion)
         # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
         
         # Correlation Weight
@@ -149,19 +158,12 @@ class SUBJ_DKVMN(Module):
             )
         )
         f = self.dropout_layer(f)
+                
+        # abil = torch.tanh(self.fusion_layer(f + em_at))
         
-        # BERT를 사용하지 않는다면 주석처리
-        em_at = self.bertmodel(input_ids=at_s,
-                       attention_mask=at_m,
-                    #    token_type_ids=at_t
-                       ).last_hidden_state
-        em_at, _ = self.gru(em_at)
+        # em_at = self.fusion_norm(f + em_at + abil)
         
-        abil = torch.tanh(self.fusion_layer(f + em_at))
-        
-        em_at = self.fusion_norm(f + em_at + abil)
-        
-        p = self.p_layer(em_at)
+        p = self.p_layer(f)
 
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
