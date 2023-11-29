@@ -280,12 +280,10 @@ def main(model_name, dataset_name, use_wandb):
             lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
             opt.lr_scheduler = lr_scheduler
             
-            seed = wandb.config.seed
             random.seed(seed)
             np.random.seed(seed)
             torch.manual_seed(seed)
             torch.cuda.manual_seed_all(seed)
-            
             
             assert run is not None
             assert type(run) is wandb.sdk.wandb_run.Run
@@ -356,7 +354,6 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'seed': {'values': [3407]},
                 'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
                 'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
                 'dim_s': {'values': [20, 50]},

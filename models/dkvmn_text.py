@@ -69,19 +69,24 @@ class SUBJ_DKVMN(Module):
         self.at_emb_layer = Linear(768, self.dim_s)
         # self.at_emb_layer = Linear(512, self.dim_s)
 
-        self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
-
         # 버트 허용여부
-        self.v_emb_layer = Embedding(self.num_q, self.dim_s)
+        self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
         # self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
+        
+        # 마지막에 버트 인코더로 한번 더 평가
+        distilconfig_2 = DistilBertConfig(output_hidden_states=True)
+        self.bertmodel_2 = DistilBertModel.from_pretrained('bert-base-uncased', config=distilconfig_2)
+        # self.bertmodel = DistilBertModel(config=distilconfig)
+        self.bertmodel_2.resize_token_embeddings(len(bert_tokenizer))
 
         # final network
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
+        self.bert_linear = Linear(768, self.dim_s)
         self.fusion_layer = Linear(self.dim_s, self.dim_s)
-        self.fusion_norm = LayerNorm(self.dim_s, self.dim_s)
+        self.fusion_layer2 = Linear(self.dim_s, self.dim_s)
         self.p_layer = Linear(self.dim_s, 1)
 
         self.dropout_layer = Dropout(self.dropout)
@@ -100,7 +105,7 @@ class SUBJ_DKVMN(Module):
                 Mv: the value matrices from q, r, at
         '''
         # x = q + r * self.num_q
-        x = q 
+        x = q + r * self.num_q
         
         batch_size = x.shape[0]
         
@@ -126,7 +131,7 @@ class SUBJ_DKVMN(Module):
                        ).last_hidden_state
         em_at, _ = self.gru(em_at)
         fusion = self.fusion_layer(v + em_at)
-        v = self.fusion_norm(v + em_at + fusion)
+        v = torch.tanh(fusion)
         # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
         
         # Correlation Weight
@@ -157,6 +162,11 @@ class SUBJ_DKVMN(Module):
             )
             )
         )
+        em_at2 = self.bert_linear(self.bertmodel_2(input_ids=at_s,
+                       attention_mask=at_m,
+                    #    token_type_ids=at_t
+                       ).last_hidden_state)
+        f = torch.tanh(self.fusion_layer2(f + em_at2))        
         f = self.dropout_layer(f)
                 
         # abil = torch.tanh(self.fusion_layer(f + em_at))
@@ -192,7 +202,6 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
     wandb_dict = {}
     if use_wandb == True: 
         wandb_dict = {
-                    "seed": wandb.config.seed,
                     "dropout": wandb.config.dropout, 
                     "lr": wandb.config.learning_rate,
                     "size_m": wandb.config.size_m,
