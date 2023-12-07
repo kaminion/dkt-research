@@ -400,6 +400,7 @@ def main(model_name, dataset_name, use_wandb):
     # 하이퍼 파라미터 설정값 로드
     with open(os.path.join(ckpt_path, "model_config.json"), "r") as f:
         model_config = json.load(f)
+    model_config.pop('lr') 
     model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \
