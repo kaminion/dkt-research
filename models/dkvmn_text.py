@@ -60,7 +60,7 @@ class SUBJ_DKVMN(Module):
         
         # BERT output dimension: 768
         self.wb = Linear(768, self.dim_s)
-        self.wk = Linear(self.dim, self.dim_s)
+        self.wk = Linear(self.dim_s, self.dim_s)
         
         self.attn = MultiheadAttention(self.dim_s, 5, self.dropout)
         self.attn_norm = LayerNorm(self.dim_s)
