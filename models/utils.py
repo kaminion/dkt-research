@@ -600,6 +600,25 @@ def dkt_train(model, opt, q, r, qshft_seqs, rshft_seqs, num_q, m):
     opt.step()
     
     return y, t, loss
+
+def dkt_bert_train(model, opt, q, r, qshft_seqs, rshft_seqs, at_s, at_t, at_m, num_q, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    next_q = qshft_seqs.long()
+    
+    y = model(inpt_q, inpt_r, at_s, at_t, at_m)
+    y = (y * one_hot(next_q, num_q)).sum(-1)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(rshft_seqs, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+    loss.backward()
+    opt.step()
+    
+    return y, t, loss
     
 def dkvmn_train(model, opt, q, r, m):
     inpt_q = q.long() 
@@ -793,6 +812,21 @@ def dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m):
     inpt_r = r.long()
     
     y = model(inpt_q, inpt_r)
+    y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
+    y = torch.masked_select(y, m).detach().cpu()
+    t = torch.masked_select(rshft_seqs, m).detach().cpu()
+    
+    loss = binary_cross_entropy(y, t)
+    return q, y, t, loss
+
+def dkt_bert_test(model, q, r, qshft_seqs, rshft_seqs, at_s, at_t, at_m, num_q, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    
+    y = model(inpt_q, inpt_r, at_s, at_t, at_m)
     y = (y * one_hot(qshft_seqs.long(), num_q)).sum(-1)
     
     # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴

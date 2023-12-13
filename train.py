@@ -41,7 +41,7 @@ from models.akt import AKT
 # 모델에 따른 train
 from models.dkt_sc import dkt_train as dkf_train
 from models.dkt_rear import dkt_train as dk_rear_train
-from models.dkt_front import dkt_train as dk_front_train
+from models.dkt_front import train_model as dkt_bert_train
 from models.dkt import train_model as dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
@@ -57,6 +57,7 @@ from models.akt import train_model as akt_train
 
 # 모델에 따른 test
 from models.dkt import test_model as dkt_test
+from models.dkt_front import test_model as dkt_bert_test
 from models.dkvmn import test_model as dkvmn_test
 from models.dkvmn_text import test_model as plus_test
 from models.sakt import test_model as sakt_test
@@ -94,6 +95,8 @@ def create_model(model_name, num_q, num_pid, model_config, device):
         model = torch.nn.DataParallel(DKT_F(num_q, **model_config)).to(device)
     elif model_name == "dkt-":
         model = torch.nn.DataParallel(DKT_FRONT(num_q, **model_config)).to(device)
+        train_model = dkt_bert_train
+        test_model = dkt_bert_test
     elif model_name == "dkt+":
         model = torch.nn.DataParallel(DKT_REAR(num_q, **model_config)).to(device)
     elif model_name == 'dkvmn':
