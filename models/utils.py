@@ -550,8 +550,8 @@ def save_auc_bert(model, max_auc, auc, hyp_dict, ckpt_path, use_wandb):
                 #         # "hidden_size": wandb.config.hidden_size \
                 #         }
                 pickle.dump(best_pef, f)
-            with open(os.path.join(ckpt_path, "model_config.json"), "w") as f:
-                json.dump(best_pef, f, indent=4)
+        with open(os.path.join(ckpt_path, "model_config.json"), "w") as f:
+            json.dump(hyp_dict, f, indent=4)
     return max_auc 
 
             

@@ -86,7 +86,6 @@ class ASSIST2009(Dataset):
             .dropna(subset=['answer_text'])\
             .drop_duplicates(subset=["order_id", "skill_name"])\
             .sort_values(by=["order_id"])
-        df['answer_text'] = df['answer_text'].fillna(' ')
 
         # 고유 유저와 고유 스킬리스트만 남김
         u_list = np.unique(df["user_id"].values)
