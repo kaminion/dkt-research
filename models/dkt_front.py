@@ -31,10 +31,16 @@ class DKT(Module):
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         self.wb = Linear(768, self.hidden_size)
         
+        
+        self.q_emb = Embedding(self.num_q, self.emb_size)
+        
         self.interaction_emb = Embedding(self.num_q * 2, self.emb_size) # log2M의 길이를 갖는 따르는 랜덤 가우시안 벡터에 할당하여 인코딩 (평균 0, 분산 I)
+        self.fusion_inter = Linear(self.emb_size + self.hidden_size, self.hidden_size)
+        self.fusion_after = Linear(self.emb_size + self.hidden_size, self.hidden_size)
+
 
         self.lstm_layer = LSTM(
-            self.emb_size + self.hidden_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
+            self.hidden_size, self.hidden_size, batch_first=True # concat 시 emb_size * 2
         )
         
         # SAKT 처럼 적용
@@ -45,7 +51,7 @@ class DKT(Module):
         self.P = Parameter(torch.Tensor(200, self.hidden_size))
         kaiming_normal_(self.P)
         
-        self.attn = MultiheadAttention(self.hidden_size, 5, self.dropout)
+        self.attn = MultiheadAttention(self.hidden_size, 4, self.dropout)
         self.attn_norm = LayerNorm(self.hidden_size)
         self.attn_dropout = Dropout(self.dropout)
     
@@ -70,7 +76,8 @@ class DKT(Module):
 
         # Compressive sensing에 의하면 d차원에서의 k-sparse 신호는 모두 원복될 수 있음. (klogd에 변형을 가한 모든 값)
         # 여기서 d차원은 unique exercise이고(M), K-sparse는 원핫인코딩을 거치므로 1-sparse라고 할 수 있음.
-        x = self.interaction_emb(q + self.num_q * r) # r텐서를 num_q 만큼 곱해서 확장함
+        x = self.interaction_emb(q + r * self.num_q) # r텐서를 num_q 만큼 곱해서 확장함
+        q_embed = self.q_emb(q)
         
         # 여기 BERT 추가해서 돌림
         # BERT, 양 차원 모양 바꾸기 
@@ -84,14 +91,20 @@ class DKT(Module):
                 ).last_hidden_state
         em_at = self.wb(em_at) # 6, 100, 100 형태로 바꿔줌.
         
-        h, _ = self.lstm_layer(torch.concat([x, em_at], dim=-1))
+        # torch.concat(x, q_embed)
+        
+        v = self.fusion_inter(torch.cat([x, em_at], dim=-1))
+        
+        h, _ = self.lstm_layer(v)
+        
+        h = self.fusion_after(torch.cat([h, q_embed], dim=-1))
         
         P = self.P.unsqueeze(1)
         
         # key + answer text
-        vq = self.wq(h).permute(1, 0, 2) + P
-        vk = self.wk(x).permute(1, 0, 2)
-        vv = self.wv(x).permute(1, 0, 2)
+        vq = self.wq(h.permute(1, 0, 2)) + P
+        vk = self.wk(x.permute(1, 0, 2))
+        vv = self.wv(x.permute(1, 0, 2))
         
         causal_mask = torch.triu(
             torch.ones([vq.shape[0], vk.shape[0]]),
@@ -107,7 +120,7 @@ class DKT(Module):
         vv = vv.permute(1, 0, 2)
         
         S = self.attn_norm(S + vq + vk + vv)
-        F = self.FFN(S)
+        F = self.FFN(torch.softmax(S, dim=-1))
         F = self.FFN_layer_norm(F + S)
         
         y = self.out_layer(F)
