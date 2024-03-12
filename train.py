@@ -19,6 +19,7 @@ from data_loaders.ednet01 import EdNet01
 from data_loaders.csedm import CSEDM
 
 # 모델 추가
+from models.ncf import NCF
 from models.dkt_sc import DKT_FUSION as DKT_F
 from models.dkt_rear import DKT as DKT_REAR
 from models.dkt_front import DKT as DKT_FRONT
@@ -90,6 +91,10 @@ def create_model(model_name, num_q, num_pid, model_config, device):
         model = torch.nn.DataParallel(DKT(num_q, **model_config)).to(device)
         train_model = dkt_train
         test_model = dkt_test
+    elif model_name == "ncf":
+        model = torch.nn.DataParallel(NCF(**model_config)).to(device)
+        train_model = ''
+        test_model = ''
     elif model_name == "dkf":
         model = torch.nn.DataParallel(DKT_F(num_q, **model_config)).to(device)
     elif model_name == "dkt-":
