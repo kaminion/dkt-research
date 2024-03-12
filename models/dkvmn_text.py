@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np 
 import torch 
 
-from torch.nn import Module, Parameter, Embedding, Linear, Dropout, GRU, TransformerEncoderLayer, Sequential, LayerNorm, ReLU
+from torch.nn import Module, Parameter, Embedding, Linear, Dropout, GRU, MultiheadAttention, Sequential, LayerNorm, ReLU
 from torch.nn.init import kaiming_normal_
 from torch.nn.functional import binary_cross_entropy, pad
 from sklearn import metrics 
@@ -59,29 +59,57 @@ class SUBJ_DKVMN(Module):
         self.bertmodel.resize_token_embeddings(len(bert_tokenizer))
         
         # BERT output dimension: 768
-        self.gru = GRU(768, self.dim_s, batch_first=True, dropout=self.dropout)
+        self.wb = Linear(768, self.dim_s)
+        self.wq = Linear(self.dim_s, self.dim_s)
+        self.wk = Linear(self.dim_s, self.dim_s)
+        self.wv = Linear(self.dim_s, self.dim_s)
+        
+        self.P = Parameter(torch.Tensor(200, self.dim_s))
+        kaiming_normal_(self.P)
+        
+        self.attn = MultiheadAttention(self.dim_s, 5, self.dropout)
+        self.attn_norm = LayerNorm(self.dim_s)
+        self.attn_dropout = Dropout(self.dropout)
         
         # self.at_emb_layer = Sequential(
         #     Linear(768, self.dim_s),
         #     ReLU(),
         #     LayerNorm(self.dim_s)
         # )
-        self.at_emb_layer = Linear(768, self.dim_s)
+        # self.at_emb_layer = Linear(768, self.dim_s)
         # self.at_emb_layer = Linear(512, self.dim_s)
-
-        self.qr_emb_layer = Embedding(2 * self.num_q, self.dim_s)
 
         # 버트 허용여부
         self.v_emb_layer = Embedding(2 * self.num_q, self.dim_s)
+        self.v_fusion_layer = Linear(2 * self.dim_s, self.dim_s)
         # self.v_emb_layer = Linear(2 * self.dim_s, self.dim_s)
 
         self.e_layer = Linear(self.dim_s, self.dim_s)
         self.a_layer = Linear(self.dim_s, self.dim_s)
+        
+        # 마지막에 버트 인코더로 한번 더 평가
+        # distilconfig_2 = DistilBertConfig(output_hidden_states=True)
+        # self.bertmodel_2 = DistilBertModel.from_pretrained('bert-base-uncased', config=distilconfig_2)
+        # # self.bertmodel = DistilBertModel(config=distilconfig)
+        # self.bertmodel_2.resize_token_embeddings(len(bert_tokenizer))
+        # self.attn_2 = MultiheadAttention(self.dim_s, 5, self.dropout)
+        # self.attn_norm_2 = LayerNorm(self.dim_s)
 
         # final network
         self.f_layer = Linear(2 * self.dim_s, self.dim_s)
-        self.fusion_layer = Linear(self.dim_s, self.dim_s)
-        self.fusion_norm = LayerNorm(self.dim_s, self.dim_s)
+        # self.bert_linear = GRU(768, self.dim_s, batch_first=True)
+        
+        self.FFN = Sequential(
+            Linear(self.dim_s, self.dim_s),
+            ReLU(),
+            Dropout(self.dropout),
+            Linear(self.dim_s, self.dim_s),
+            Dropout(self.dropout)
+        )
+        self.FFN_layer_norm = LayerNorm(self.dim_s)
+        
+        # self.fusion_layer2 = Linear(2 * self.dim_s, self.dim_s)
+        # self.fusion_norm2 = LayerNorm(self.dim_s, self.dim_s)
         self.p_layer = Linear(self.dim_s, 1)
 
         self.dropout_layer = Dropout(self.dropout)
@@ -99,6 +127,7 @@ class SUBJ_DKVMN(Module):
                 p: the knowledge level about q
                 Mv: the value matrices from q, r, at
         '''
+        # x = q + r * self.num_q
         x = q + r * self.num_q
         
         batch_size = x.shape[0]
@@ -116,11 +145,15 @@ class SUBJ_DKVMN(Module):
         k = self.k_emb_layer(q) # 보통의 키는 컨셉 수
         v = self.v_emb_layer(x)
         
-        # BERT 사용 여부
-        # v = self.v_emb_layer(q + r) 
-        # v = torch.relu(self.v_emb_layer(torch.concat([x, em_at], dim=-1))) # 컨셉수, 응답 수
+        em_at = self.bertmodel(input_ids=at_s,
+                attention_mask=at_m,
+            #    token_type_ids=at_t
+                ).last_hidden_state
+        em_at = self.wb(em_at)
         
-        # Correlation Weight
+        v = self.v_fusion_layer(torch.concat([em_at, v], dim=-1))
+        
+        # Correlation Weight - 여기 S 원래는 k였음
         w = torch.softmax(torch.matmul(k, self.Mk.T), dim=-1) # 차원이 세로로 감, 0, 1, 2 뎁스가 깊어질 수록 가로(행)에 가까워짐, 모든 row 데이터에 대해 softmax 
         # Write Process
         e = torch.sigmoid(self.e_layer(v))
@@ -150,18 +183,47 @@ class SUBJ_DKVMN(Module):
         )
         f = self.dropout_layer(f)
         
-        # BERT를 사용하지 않는다면 주석처리
-        em_at = self.bertmodel(input_ids=at_s,
-                       attention_mask=at_m,
-                    #    token_type_ids=at_t
-                       ).last_hidden_state
-        em_at = self.gru(em_at)
+        P = self.P.unsqueeze(1)
+        # SAKT처럼 활용하기 // 
         
-        abil = torch.tanh(self.fusion_layer(f + em_at))
+        # key + answer text
+        vq = self.wq(f).permute(1, 0, 2) + P
+        vk = self.wk(v).permute(1, 0, 2)
+        vv = self.wv(v).permute(1, 0, 2) 
         
-        em_at = self.fusion_norm(f + em_at + abil)
+        causal_mask = torch.triu(
+            torch.ones([vq.shape[0], vk.shape[0]]),
+            diagonal=1
+        ).bool()
+                
+        S, attn_weight = self.attn(vq, vk, vv, attn_mask=causal_mask)
+        S = self.attn_dropout(S)
         
-        p = self.p_layer(em_at)
+        # 
+        S = S.permute(1, 0, 2)
+        vq = vq.permute(1, 0, 2)
+        vk = vk.permute(1, 0, 2)
+        vv = vv.permute(1, 0, 2)
+        
+        S = self.attn_norm(S + vq + vk + vv)
+        F = self.FFN(S)
+        F = self.FFN_layer_norm(F + S)
+        
+        # BERT 2번째, input이랑 
+        # em_at2, _ = self.bert_linear(self.bertmodel_2(input_ids=at_s,
+        #                attention_mask=at_m,
+        #             #    token_type_ids=at_t
+        #                ).last_hidden_state)
+
+        
+        # fula2 = self.fusion_layer2(torch.concat([f, em_at2], dim=-1))
+        # f = self.fusion_norm2(f + em_at2 + fula2)
+              
+        # abil = torch.tanh(self.fusion_layer(f + em_at))
+        
+        # em_at = self.fusion_norm(f + em_at + abil)
+        
+        p = self.p_layer(F) # original = f
 
         p = torch.sigmoid(p)
         p = p.squeeze(-1)
@@ -190,7 +252,6 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
     wandb_dict = {}
     if use_wandb == True: 
         wandb_dict = {
-                    "seed": wandb.config.seed,
                     "dropout": wandb.config.dropout, 
                     "lr": wandb.config.learning_rate,
                     "size_m": wandb.config.size_m,

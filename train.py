@@ -42,7 +42,7 @@ from models.akt import AKT
 # 모델에 따른 train
 from models.dkt_sc import dkt_train as dkf_train
 from models.dkt_rear import dkt_train as dk_rear_train
-from models.dkt_front import dkt_train as dk_front_train
+from models.dkt_front import train_model as dkt_bert_train
 from models.dkt import train_model as dkt_train
 from models.auto import auto_train
 from models.dkvmn_text import train_model as plus_train
@@ -58,6 +58,7 @@ from models.akt import train_model as akt_train
 
 # 모델에 따른 test
 from models.dkt import test_model as dkt_test
+from models.dkt_front import test_model as dkt_bert_test
 from models.dkvmn import test_model as dkvmn_test
 from models.dkvmn_text import test_model as plus_test
 from models.sakt import test_model as sakt_test
@@ -99,6 +100,8 @@ def create_model(model_name, num_q, num_pid, model_config, device):
         model = torch.nn.DataParallel(DKT_F(num_q, **model_config)).to(device)
     elif model_name == "dkt-":
         model = torch.nn.DataParallel(DKT_FRONT(num_q, **model_config)).to(device)
+        train_model = dkt_bert_train
+        test_model = dkt_bert_test
     elif model_name == "dkt+":
         model = torch.nn.DataParallel(DKT_REAR(num_q, **model_config)).to(device)
     elif model_name == 'dkvmn':
@@ -267,8 +270,6 @@ def main(model_name, dataset_name, use_wandb):
             run = wandb.init(group=f"cv_{cv_name}_{fold}", name=run_name, reinit=True)
             
             # config 설정
-            if model_name != 'dkvmn':
-                model_config['dropout'] = wandb.config.dropout
             if model_name == 'dkt':
                 model_config['emb_size'] = wandb.config.emb_size
             if model_name in ['dkt', 'sakt', 'saint']:
@@ -276,7 +277,7 @@ def main(model_name, dataset_name, use_wandb):
             elif model_name == 'akt':
                 model_config['d_ff'] = wandb.config.d_ff
                 model_config['d_model'] = wandb.config.d_model
-            elif model_name == 'dkvmn':
+            elif model_name in ['dkvmn', 'dkvmn+']:
                 model_config['dim_s'] = wandb.config.dim_s
                 model_config['size_m'] = wandb.config.size_m
             
@@ -287,12 +288,10 @@ def main(model_name, dataset_name, use_wandb):
             lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.5)
             opt.lr_scheduler = lr_scheduler
             
-            seed = wandb.config.seed
             random.seed(seed)
             np.random.seed(seed)
             torch.manual_seed(seed)
             torch.cuda.manual_seed_all(seed)
-            
             
             assert run is not None
             assert type(run) is wandb.sdk.wandb_run.Run
@@ -363,13 +362,12 @@ def main(model_name, dataset_name, use_wandb):
                 'goal': 'maximize'
             },
             'parameters': {
-                'seed': {'values': [3407]},
                 'dropout': {'values': [0, 0.05, 0.1, 0.15, 0.2, 0.25]},
-                'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
-                # 'dim_s': {'values': [20, 50]},
-                # 'size_m': {'values': [20, 50]}
+                'learning_rate': {'values': [5*1e-6, 1e-5, 1e-4, 1e-3]}, # [1e-4, 1e-3], [5*1e-6, 1e-5, 1e-4]
+                'dim_s': {'values': [20, 50]},
+                'size_m': {'values': [20, 50]}
                 # 'emb_size': {'values': [256, 512]},
-                'hidden_size': {'values': [50, 100, 150, 200]}
+                # 'hidden_size': {'values': [50, 100, 150, 200]}
                 # "d_ff": {'values': [256, 512]},
                 # "d_model": {'values': [256, 512]}
             },
@@ -408,8 +406,13 @@ def main(model_name, dataset_name, use_wandb):
     
     # test 모델 때문에 추가
     # 하이퍼 파라미터 설정값 로드
-    with open(os.path.join(ckpt_path, "model_config.json"), "rb") as f:
-        model_config = json.load(f)
+        
+    if use_wandb == True:
+        with open(os.path.join(ckpt_path, "model_config.json"), "r") as f:
+            model_config = json.load(f)
+        opt.param_groups[0]['lr'] = model_config['lr']
+        model_config.pop('lr') 
+    
     model, train_model, test_model = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
     
     auc, loss_mean, acc, q_acc, q_cnt, precision, recall, f1 = \

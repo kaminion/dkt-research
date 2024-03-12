@@ -135,7 +135,6 @@ def train_model(model, train_loader, valid_loader, num_q, num_epochs, opt, ckpt_
     wandb_dict = {}
     if use_wandb == True: 
         wandb_dict = {
-                    "seed": wandb.config.seed,
                     "dropout": wandb.config.dropout, 
                     "lr": wandb.config.learning_rate,
                     "size_m": wandb.config.size_m,
