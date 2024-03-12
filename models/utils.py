@@ -564,6 +564,23 @@ def log_auc(use_wandb, log_dict):
         #     "train_acc": acc_mean,
         #     "train_loss": loss_mean
         # }
+        
+def ncf_train(model, opt, q, r, m):
+    inpt_q = q.long() 
+    inpt_r = r.long()
+    
+    y = model(inpt_q, inpt_r)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    y = torch.masked_select(y, m)
+    t = torch.masked_select(r, m)
+    
+    opt.zero_grad()
+    loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
+    loss.backward()
+    opt.step()
+    
+    return y, t, loss
 
 def common_train(model, opt, q, r, m):
     inpt_q = q.long() 
@@ -805,6 +822,20 @@ def common_test_csedm(model, q, r, label, m):
     
     loss = binary_cross_entropy(y, t) # 실제 y^T와 원핫 결합, 다음 answer 간 cross entropy
     
+    return q, y, t, loss
+
+def ncf_test(model, q, r, m):
+    inpt_q = q.long()
+    inpt_r = r.long()
+    
+    y = model(inpt_q, inpt_r)
+    
+    # y와 t 변수에 있는 행렬들에서 마스킹이 true로 된 값들만 불러옴
+    q = torch.masked_select(q, m).detach().cpu()
+    y = torch.masked_select(y, m).detach().cpu()
+    t = torch.masked_select(r, m).detach().cpu()
+    
+    loss = binary_cross_entropy(y, t)
     return q, y, t, loss
 
 def dkt_test(model, q, r, qshft_seqs, rshft_seqs, num_q, m):

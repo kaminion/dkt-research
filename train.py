@@ -85,7 +85,7 @@ torch.cuda.manual_seed_all(seed)
     #torch.backends.cudnn.deterministic = True
     #torch.backends.cudnn.benchmark = False
     
-def create_model(model_name, num_q, num_pid, model_config, device):
+def create_model(model_name, num_u, num_q, num_pid, model_config, device):
     model, train_model, test_model = None, None, None
     
     if model_name == "dkt":
@@ -93,7 +93,7 @@ def create_model(model_name, num_q, num_pid, model_config, device):
         train_model = dkt_train
         test_model = dkt_test
     elif model_name == "ncf":
-        model = torch.nn.DataParallel(NCF(**model_config)).to(device)
+        model = torch.nn.DataParallel(NCF(num_users=num_u, num_items=num_q, **model_config)).to(device)
         train_model = ''
         test_model = ''
     elif model_name == "dkf":
@@ -281,7 +281,7 @@ def main(model_name, dataset_name, use_wandb):
                 model_config['dim_s'] = wandb.config.dim_s
                 model_config['size_m'] = wandb.config.size_m
             
-            model, train_model, _ = create_model(model_name, dataset.num_q, dataset.num_pid, model_config, device)
+            model, train_model, _ = create_model(model_name, dataset.num_u, dataset.num_q, dataset.num_pid, model_config, device)
             
             model.apply(reset_weight)
             opt = Adam(model.parameters(), wandb.config.learning_rate)
